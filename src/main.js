@@ -85,7 +85,7 @@ async function installAnalyzer() {
     //if (!output.includes('PVS-Studio 7')) {
     //  throw new Error('Unable to install PVS-Studio') //<< always here
     //}
-    core.debug(`Successfuly installed ${output}`)
+    core.debug(`Successfuly installed ${res.stdout}`)
   } catch (error) {
     core.setFailed(error.message)
   }
