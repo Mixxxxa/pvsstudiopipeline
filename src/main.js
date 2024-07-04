@@ -107,10 +107,7 @@ async function getLicenseFromEnv() {
     core.debug('KEY FOUND')
   }
 
-  let tempLicenseFilePath = ''
-  if (name && key) {
-    core.debug('NAME AND KEY FOUND')
-    const licenseData = `${name}\n${key}`
+  const check = async data => {
     temp.open('pvs', (err, info) => {
       if (!err) {
         fs.writeFileSync(info.fd, licenseData, err => {
@@ -120,12 +117,21 @@ async function getLicenseFromEnv() {
             )
           }
           core.debug('SET LICENSE FILE PATH')
-          tempLicenseFilePath = info.path
+          return info.path
+          //tempLicenseFilePath = info.path
         })
       } else {
         core.debug('UNABLE TO OPEN FILE')
       }
     })
+    return ''
+  }
+
+  let tempLicenseFilePath = ''
+  if (name && key) {
+    core.debug('NAME AND KEY FOUND')
+    const licenseData = `${name}\n${key}`
+    tempLicenseFilePath = await check(licenseData)
   }
   return tempLicenseFilePath
 }
