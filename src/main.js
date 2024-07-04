@@ -90,19 +90,9 @@ async function getAnalyzerCorePath() {
 async function getAnalyzerPath() {
   if (process.platform === 'win32') {
     // todo check registry too
-    return 'C:\\Program Files (x86)\\PVS-Studio\\CompileCommandsAnalyzer.exe'
+    return 'C:\\Program Files (x86)\\PVS-Studio\\CompilerCommandsAnalyzer.exe'
   }
-  return io.which('pvs-studio')
-}
-
-function customSplit(str) {
-  if (str.length === 0) {
-    return []
-  }
-  const regex = /[;\n]/
-  const parts = str.split(regex)
-  const filteredParts = parts.filter(part => part.trim() !== '')
-  return filteredParts
+  return io.which('pvs-studio-analyzer')
 }
 
 async function prepareArgs() {
