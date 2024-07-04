@@ -136,17 +136,21 @@ async function getLicenseFromEnv() {
 
     const tempDir = await fsp.mkdtemp(path.join(os.tmpdir(), 'pvs-'))
     const tempLicFilePath = `${tempDir}.lic`
+    core.debug(`Trying to write license to ${tempLicFilePath}`)
+    // TODO rework
+    await fsp.writeFile(tempLicFilePath, licenseData)
+    tempLicenseFilePath = tempLicFilePath
 
-    await fsp.writeFile(tempLicFilePath, licenseData, err => {
-      if (err) {
-        throw new Error(
-          `Unable to write temporary license file to ${tempLicFilePath}`
-        )
-      }
-      core.debug('SET LICENSE FILE PATH')
-      //return info.path
-      tempLicenseFilePath = tempLicFilePath
-    })
+    // , err => {
+    //   if (err) {
+    //     throw new Error(
+    //       `Unable to write temporary license file to ${tempLicFilePath}`
+    //     )
+    //   }
+    //   core.debug('SET LICENSE FILE PATH')
+    //   //return info.path
+    //   tempLicenseFilePath = tempLicFilePath
+    // })
   }
   return tempLicenseFilePath
 }
