@@ -10898,8 +10898,8 @@ async function getAnalyzerPath() {
 }
 
 async function getLicenseFromEnv() {
-  const name = process.env.PVS_STUDIO_NAME
-  const key = process.env.PVS_STUDIO_KEY
+  const name = process.env.PVS_STUDIO_LICENSE_NAME
+  const key = process.env.PVS_STUDIO_LICENSE_KEY
   if (name) {
     core.debug('NAME FOUND')
   }
