@@ -10981,7 +10981,7 @@ async function prepareArgs() {
   let args = [
     'analyze',
     '-f',
-    `"${core.getInput('file-to-analyze', { required: true, trimWhitespace: true })}"`,
+    `${core.getInput('file-to-analyze', { required: true, trimWhitespace: true })}`,
     '-a',
     `${core.getInput('analysis-mode', OptionalWithTrim)}`,
     '-o',
