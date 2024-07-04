@@ -10911,9 +10911,9 @@ async function getLicenseFromEnv() {
   if (name && key) {
     core.debug('NAME AND KEY FOUND')
     const licenseData = `${name}\n${key}`
-    temp.open('pvs', function (err, info) {
+    await temp.open('pvs', async function (err, info) {
       if (!err) {
-        fs.writeFile(info.fd, licenseData, err => {
+        await fs.writeFile(info.fd, licenseData, err => {
           if (err) {
             throw new Error(
               `Unable to write temporary license file to ${info.path}`
