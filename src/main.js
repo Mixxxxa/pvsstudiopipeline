@@ -1,7 +1,7 @@
 const core = require('@actions/core')
 const exec = require('@actions/exec')
 
-const { wait } = require('./wait')
+//const { wait } = require('./wait')
 
 import { platform } from '@actions/core'
 
@@ -69,10 +69,8 @@ async function installAnalyzer() {
   }
 }
 
-async function getAnalyzerVersion() {}
+//async function getAnalyzerVersion() {}
 
 module.exports = {
-  run,
-  installAnalyzer,
-  getAnalyzerVersion
+  run
 }

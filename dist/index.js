@@ -3964,7 +3964,7 @@ __nccwpck_require__.r(__webpack_exports__);
 const core = __nccwpck_require__(186)
 const exec = __nccwpck_require__(514)
 
-const { wait } = __nccwpck_require__(312)
+//const { wait } = require('./wait')
 
 ;
 
@@ -4032,37 +4032,11 @@ async function installAnalyzer() {
   }
 }
 
-async function getAnalyzerVersion() {}
+//async function getAnalyzerVersion() {}
 
 module.exports = {
-  run,
-  installAnalyzer,
-  getAnalyzerVersion
+  run
 }
-
-
-/***/ }),
-
-/***/ 312:
-/***/ ((module) => {
-
-/**
- * Wait for a number of milliseconds.
- *
- * @param {number} milliseconds The number of milliseconds to wait.
- * @returns {Promise<string>} Resolves with 'done!' after the wait is over.
- */
-async function wait(milliseconds) {
-  return new Promise(resolve => {
-    if (isNaN(milliseconds)) {
-      throw new Error('milliseconds not a number')
-    }
-
-    setTimeout(() => resolve('done!'), milliseconds)
-  })
-}
-
-module.exports = { wait }
 
 
 /***/ }),
