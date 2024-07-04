@@ -3,7 +3,9 @@ const exec = require('@actions/exec')
 
 //const { wait } = require('./wait')
 
-import { platform } from '@actions/core'
+//const { platform } = requ
+
+//import { platform } from '@actions/core'
 
 /**
  * The main function for the action.
@@ -35,14 +37,14 @@ async function run() {
 async function installAnalyzer() {
   try {
     core.debug('Trying to install analyzer')
-    if (platform.isWindows) {
+    if (core.platform.isWindows) {
       core.debug('Detected Windows')
       await exec.exec('choco', ['install', 'pvs-studio'])
-    } else if (platform.isLinux) {
+    } else if (core.platform.isLinux) {
       core.debug('Detected Linux')
       await exec.exec('sudo', ['apt-get', 'update'])
       await exec.exec('sudo', ['apt-get', 'install', 'pvs-studio'])
-    } else if (platform.isMacOS) {
+    } else if (core.platform.isMacOS) {
       core.debug('Detected macos')
       await exec.exec('brew update')
       await exec.exec('brew', ['install', 'viva64/pvs-studio/pvs-studio'])
