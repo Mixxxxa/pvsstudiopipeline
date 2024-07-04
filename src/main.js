@@ -182,7 +182,7 @@ async function prepareArgs() {
   if (licenseFile) {
     args.push(licenseFile)
   } else {
-    const tempLicenseFile = getLicenseFromEnv()
+    const tempLicenseFile = await getLicenseFromEnv()
     if (!tempLicenseFile) {
       throw new Error(
         'License file or corresponding environment variables must be set'
