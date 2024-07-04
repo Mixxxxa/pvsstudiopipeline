@@ -10910,7 +10910,7 @@ async function getLicenseFromEnv() {
   const check = async data => {
     temp.open('pvs', (err, info) => {
       if (!err) {
-        fs.writeFileSync(info.fd, licenseData, err => {
+        fs.writeFileSync(info.fd, data, err => {
           if (err) {
             throw new Error(
               `Unable to write temporary license file to ${info.path}`
