@@ -20,6 +20,10 @@ inputs:
   output-file:
     description: 'Output file.'
     required: true
+  license-file:
+    description: 'PVS-Studio license file'
+    required: false
+    default: ''
   source-tree-root:
     description: 'Replace absolute paths in report with relative paths'
     required: false

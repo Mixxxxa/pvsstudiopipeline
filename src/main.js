@@ -2,6 +2,13 @@ const core = require('@actions/core')
 const exec = require('@actions/exec')
 const tc = require('@actions/tool-cache')
 const io = require('@actions/io')
+const fs = require('node:fs')
+
+const temp = require('temp')
+
+import { mkdtemp } from 'node:fs/promises'
+import { join } from 'node:path'
+import { tmpdir } from 'node:os'
 
 //const { wait } = require('./wait')
 //import { platform } from '@actions/core'
@@ -95,6 +102,29 @@ async function getAnalyzerPath() {
   return io.which('pvs-studio-analyzer')
 }
 
+async function getLicenseFromEnv() {
+  const name = process.env.PVS_STUDIO_NAME
+  const key = process.env.PVS_STUDIO_KEY
+
+  let tempLicenseFilePath = ''
+  if (name && key) {
+    const licenseData = `${name}\n${key}`
+    temp.open('pvs', function (err, info) {
+      if (!err) {
+        fs.writeFile(info.fd, licenseData, err => {
+          if (err) {
+            throw new Error(
+              `Unable to write temporary license file to ${info.path}`
+            )
+          }
+          tempLicenseFilePath = info.path
+        })
+      }
+    })
+  }
+  return tempLicenseFilePath
+}
+
 async function prepareArgs() {
   const OptionalWithTrim = {
     required: false,
@@ -119,6 +149,7 @@ async function prepareArgs() {
   }
 
   let args = [
+    'analyze',
     '-f',
     `"${core.getInput('file-to-analyze', { required: true, trimWhitespace: true })}"`,
     '-a',
@@ -136,14 +167,6 @@ async function prepareArgs() {
   const rulesConfigsText = core.getInput('rules-configs', OptionalWithTrim)
   processMultipleArgsFromText(args, '-R', rulesConfigsText)
 
-  // core.debug(`Basic excludes: ${excludesText}`)
-  // const excludedDirs = customSplit(excludesText)
-  // core.debug(`Directories to exclude: ${excludedDirs}`)
-  // for (const excludedDir of excludedDirs) {
-  //   args.push('-e')
-  //   args.push(`"${excludedDir}"`)
-  // }
-
   const parallel = core.getInput('parallel', OptionalWithTrim)
   if (parallel && parallel !== '0') {
     args.push('-j')
@@ -153,11 +176,25 @@ async function prepareArgs() {
   const sourceTreeRoot = core.getInput('source-tree-root', OptionalWithTrim)
   if (sourceTreeRoot) {
     args.push('-r')
-    args.push(`"${sourceTreeRoot}"`)
+    args.push(`${sourceTreeRoot}`)
   }
 
   const additionalArgsText = core.getInput('additional-args', OptionalWithTrim)
   processMultipleArgsFromText(args, '', additionalArgsText)
+
+  const licenseFile = core.getInput('licence-file')
+  args.push('-l')
+  if (licenseFile) {
+    args.push(licenseFile)
+  } else {
+    const tempLicenseFile = getLicenseFromEnv()
+    if (!tempLicenseFile) {
+      throw new Error(
+        'License file or corresponding environment variables must be set'
+      )
+    }
+    args.push(tempLicenseFile)
+  }
 
   core.debug(`Arguments for analyzer: ${args}`)
   return args
