@@ -4,9 +4,6 @@ const tc = require('@actions/tool-cache')
 const io = require('@actions/io')
 
 //const { wait } = require('./wait')
-
-const { platform } = require('@actions/core')
-
 //import { platform } from '@actions/core'
 
 /**
@@ -17,6 +14,7 @@ async function run() {
   try {
     core.debug('RUN')
     await installAnalyzer()
+    await runAnalysis()
 
     // const ms = core.getInput('milliseconds', { required: true })
 
@@ -63,19 +61,30 @@ async function installAnalyzer() {
       throw new Error('Unsuppoted OS')
     }
 
-    let output = ''
-    const options = {
-      stdout: data => {
-        output += data.toString()
-      },
-      stderr: data => {
-        output += data.toString()
-      }
-    }
+    // let output = ''
+    // const options = {
+    //   stdout: data => {
+    //     output += data.toString()
+    //   },
+    //   stderr: data => {
+    //     output += data.toString()
+    //   }
+    // }
 
-    let codeFilePath = await getAnalyzerCorePath()
+    const coreFilePath = await getAnalyzerCorePath()
+    core.debug(`Analyzer path is ${coreFilePath}`)
     // TODO It will fail if unable to found exe. Rework to better check
-    await exec.exec(`"${codeFilePath}"`, ['--version'], options)
+    const res = await exec.getExecOutput(
+      `"${coreFilePath}"`,
+      ['--version'],
+      options
+    )
+    core.debug(`Return code is ${res.exitCode}`)
+    core.debug(`OUT is ${res.stdout}`)
+    core.debug(`ERR is ${res.stderr}`)
+    if (res.exitCode !== 0 || !res.stdout.includes('PVS-Studio ')) {
+      throw new Error('Unable to install PVS-Studio')
+    }
 
     //if (!output.includes('PVS-Studio 7')) {
     //  throw new Error('Unable to install PVS-Studio') //<< always here
