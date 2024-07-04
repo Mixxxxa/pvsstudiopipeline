@@ -14,7 +14,7 @@ async function run() {
   try {
     core.debug('RUN')
     await installAnalyzer()
-    await runAnalysis()
+    //await runAnalysis()
 
     // const ms = core.getInput('milliseconds', { required: true })
 
@@ -74,11 +74,7 @@ async function installAnalyzer() {
     const coreFilePath = await getAnalyzerCorePath()
     core.debug(`Analyzer path is ${coreFilePath}`)
     // TODO It will fail if unable to found exe. Rework to better check
-    const res = await exec.getExecOutput(
-      `"${coreFilePath}"`,
-      ['--version'],
-      options
-    )
+    const res = await exec.getExecOutput(`"${coreFilePath}"`, ['--version'])
     core.debug(`Return code is ${res.exitCode}`)
     core.debug(`OUT is ${res.stdout}`)
     core.debug(`ERR is ${res.stderr}`)
