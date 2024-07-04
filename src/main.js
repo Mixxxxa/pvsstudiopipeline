@@ -2,8 +2,10 @@ const core = require('@actions/core')
 const exec = require('@actions/exec')
 const tc = require('@actions/tool-cache')
 const io = require('@actions/io')
-const fs = require('node:fs')
+const fsp = require('node:fs/promises')
 const temp = require('temp')
+const os = require('node:os')
+const path = require('node:path')
 
 //const { wait } = require('./wait')
 //import { platform } from '@actions/core'
@@ -107,31 +109,44 @@ async function getLicenseFromEnv() {
     core.debug('KEY FOUND')
   }
 
-  const check = async data => {
-    temp.open('pvs', (err, info) => {
-      if (!err) {
-        fs.writeFileSync(info.fd, data, err => {
-          if (err) {
-            throw new Error(
-              `Unable to write temporary license file to ${info.path}`
-            )
-          }
-          core.debug('SET LICENSE FILE PATH')
-          return info.path
-          //tempLicenseFilePath = info.path
-        })
-      } else {
-        core.debug('UNABLE TO OPEN FILE')
-      }
-    })
-    return ''
-  }
+  // const check = async data => {
+  //   temp.open('pvs', (err, info) => {
+  //     if (!err) {
+  //       fs.writeFileSync(info.fd, data, err => {
+  //         if (err) {
+  //           throw new Error(
+  //             `Unable to write temporary license file to ${info.path}`
+  //           )
+  //         }
+  //         core.debug('SET LICENSE FILE PATH')
+  //         return info.path
+  //         //tempLicenseFilePath = info.path
+  //       })
+  //     } else {
+  //       core.debug('UNABLE TO OPEN FILE')
+  //     }
+  //   })
+  //   return ''
+  // }
 
   let tempLicenseFilePath = ''
   if (name && key) {
     core.debug('NAME AND KEY FOUND')
     const licenseData = `${name}\n${key}`
-    tempLicenseFilePath = await check(licenseData)
+
+    const tempDir = await fsp.mkdtemp(path.join(os.tmpdir(), 'pvs-'))
+    const tempLicFilePath = `${tempDir}.lic`
+
+    await fsp.writeFile(tempLicFilePath, licenseData, err => {
+      if (err) {
+        throw new Error(
+          `Unable to write temporary license file to ${tempLicFilePath}`
+        )
+      }
+      core.debug('SET LICENSE FILE PATH')
+      //return info.path
+      tempLicenseFilePath = tempLicFilePath
+    })
   }
   return tempLicenseFilePath
 }
