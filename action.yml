@@ -1,9 +1,12 @@
-name: 'The name of your action here'
-description: 'Provide a description here'
+name: 'PVS-Studio scan example'
+description: 'Easy way to configure PVS-Studio analyzer on GitHub'
 author: 'Your name or organization here'
 
 # Define your inputs here.
 inputs:
+  additional-args:
+    description: 'Additional args passed to analyzer'
+    required: false
   milliseconds:
     description: 'Your input description here'
     required: true
