@@ -3,12 +3,7 @@ const exec = require('@actions/exec')
 const tc = require('@actions/tool-cache')
 const io = require('@actions/io')
 const fs = require('node:fs')
-
 const temp = require('temp')
-
-import { mkdtemp } from 'node:fs/promises'
-import { join } from 'node:path'
-import { tmpdir } from 'node:os'
 
 //const { wait } = require('./wait')
 //import { platform } from '@actions/core'
