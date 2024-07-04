@@ -6663,7 +6663,7 @@ async function installAnalyzer() {
     }
 
     let codeFilePath = await getAnalyzerCorePath()
-    exec.exec(`"${codeFilePath}"`, ['--version'], options)
+    await exec.exec(`"${codeFilePath}"`, ['--version'], options)
 
     if (!output || !output.includes('PVS-Studio ')) {
       throw new Error('Unable to install PVS-Studio')
