@@ -6640,13 +6640,13 @@ async function installAnalyzer() {
       const distFilePath = await tc.downloadTool(
         'https://cdn.pvs-studio.com/pvs-studio-latest.deb'
       )
-      const newDistFilePath = `${distFilePath}.deb`
+      const newDistFilePath = await `${distFilePath}.deb`
       await io.mv(distFilePath, newDistFilePath)
       await exec.exec('sudo', ['apt-get', 'update'])
       await exec.exec('sudo', [
         'apt-get',
         'install',
-        `${core.toPlatformPath(distFilePath)}`
+        `${core.toPlatformPath(newDistFilePath)}`
       ])
     } else {
       throw new Error('Unsuppoted OS')
@@ -6663,7 +6663,7 @@ async function installAnalyzer() {
     }
 
     let codeFilePath = await getAnalyzerCorePath()
-    exec.exec(codeFilePath, ['--version'], options)
+    exec.exec(`"${codeFilePath}"`, ['--version'], options)
 
     if (!output || !output.includes('PVS-Studio ')) {
       throw new Error('Unable to install PVS-Studio')
