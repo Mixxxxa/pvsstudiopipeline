@@ -4,13 +4,24 @@ author: 'Your name or organization here'
 
 # Define your inputs here.
 inputs:
+  file-to-analyze:
+    description: 'File to analyze (Compile Commands Database or trace-file)'
+    required: true
+  analysis-mode:
+    description:
+      "The group of warnings that will be activated during analysis. Several
+      values must be separated by ';', e.g. 'GA;OP;64'"
+    required: false
+    default: 'GA;OP'
+  excluded-dirs:
+    description:
+      'Directories whose files are not necessary to check. Several values must
+      be separated by '';'', e.g.
+      ''C:\dev\project\thirdparty;C:\dev\project\libs'''
+    required: false
   additional-args:
     description: 'Additional args passed to analyzer'
     required: false
-  milliseconds:
-    description: 'Your input description here'
-    required: true
-    default: '1000'
 
 # Define your outputs here.
 outputs:

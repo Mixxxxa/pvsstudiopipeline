@@ -49,7 +49,21 @@ async function installAnalyzer() {
     } else {
       throw new Error('Unsuppoted OS')
     }
-    core.debug(`Successfuly installed PVS-Studio `)
+
+    let output = ''
+    const options = {
+      stdout: data => {
+        output += data.toString()
+      },
+      stderr: data => {
+        output += data.toString()
+      }
+    }
+
+    if (!output || !output.includes('PVS-Studio ')) {
+      throw new Error('Unable to install PVS-Studio')
+    }
+    core.debug(`Successfuly installed ${output}`)
   } catch (error) {
     core.setFailed(error.message)
   }
