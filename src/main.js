@@ -1,6 +1,6 @@
 const core = require('@actions/core')
 const exec = require('@actions/exec')
-const tc = require('@actions/tool-cache');
+const tc = require('@actions/tool-cache')
 
 //const { wait } = require('./wait')
 
@@ -42,14 +42,20 @@ async function installAnalyzer() {
       core.debug('Detected Windows')
       await exec.exec('choco', ['install', 'pvs-studio'])
     } else if (process.platform === 'darwin') {
-      core.debug('Detected macos')
+      core.debug('Detected macos1')
       await exec.exec('brew update')
       await exec.exec('brew', ['install', 'viva64/pvs-studio/pvs-studio'])
     } else if (process.platform === 'linux') {
-      core.debug('Detected Linux')
-      const distFilePath = await tc.downloadTool('https://cdn.pvs-studio.com/pvs-studio-latest.deb');
+      core.debug('Detected Linux1')
+      const distFilePath = await tc.downloadTool(
+        'https://cdn.pvs-studio.com/pvs-studio-latest.deb'
+      )
       await exec.exec('sudo', ['apt-get', 'update'])
-      await exec.exec('sudo', ['apt-get', 'install', `${core.toPlatformPath(distFilePath)}`])
+      await exec.exec('sudo', [
+        'apt-get',
+        'install',
+        `${core.toPlatformPath(distFilePath)}`
+      ])
     } else {
       throw new Error('Unsuppoted OS')
     }
@@ -67,7 +73,7 @@ async function installAnalyzer() {
     exec.exec('pvs-studio', ['--version'], options)
 
     if (!output || !output.includes('PVS-Studio ')) {
-      throw new Error('Unable to install PVS-Studio')
+      throw new Error('Unable to install PVS-Studio1')
     }
     core.debug(`Successfuly installed ${output}`)
   } catch (error) {
