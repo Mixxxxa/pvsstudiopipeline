@@ -1,6 +1,7 @@
 const core = require('@actions/core')
 const exec = require('@actions/exec')
 const tc = require('@actions/tool-cache')
+const io = require('@actions/io')
 
 //const { wait } = require('./wait')
 
@@ -50,6 +51,8 @@ async function installAnalyzer() {
       const distFilePath = await tc.downloadTool(
         'https://cdn.pvs-studio.com/pvs-studio-latest.deb'
       )
+      const newDistFilePath = `${distFilePath}.deb`
+      await io.mv(distFilePath, newDistFilePath)
       await exec.exec('sudo', ['apt-get', 'update'])
       await exec.exec('sudo', [
         'apt-get',
@@ -70,10 +73,11 @@ async function installAnalyzer() {
       }
     }
 
-    exec.exec('pvs-studio', ['--version'], options)
+    let codeFilePath = await getAnalyzerCorePath()
+    exec.exec(codeFilePath, ['--version'], options)
 
     if (!output || !output.includes('PVS-Studio ')) {
-      throw new Error('Unable to install PVS-Studio1')
+      throw new Error('Unable to install PVS-Studio')
     }
     core.debug(`Successfuly installed ${output}`)
   } catch (error) {
@@ -81,7 +85,13 @@ async function installAnalyzer() {
   }
 }
 
-//async function getAnalyzerVersion() {}
+async function getAnalyzerCorePath() {
+  if (process.platform === 'win32') {
+    // todo check registry also
+    return 'C:\\Program Files (x86)\\PVS-Studio\\x64\\PVS-Studio.exe'
+  }
+  return io.which('pvs-studio')
+}
 
 module.exports = {
   run
