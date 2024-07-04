@@ -6603,7 +6603,8 @@ async function run() {
   try {
     core.debug('RUN')
     await installAnalyzer()
-    //await runAnalysis()
+    await runAnalyzer()
+    core.debug('FINISH')
 
     // const ms = core.getInput('milliseconds', { required: true })
 
@@ -6650,31 +6651,18 @@ async function installAnalyzer() {
       throw new Error('Unsuppoted OS')
     }
 
-    // let output = ''
-    // const options = {
-    //   stdout: data => {
-    //     output += data.toString()
-    //   },
-    //   stderr: data => {
-    //     output += data.toString()
-    //   }
-    // }
-
     const coreFilePath = await getAnalyzerCorePath()
-    core.debug(`Analyzer path is ${coreFilePath}`)
-    // TODO It will fail if unable to found exe. Rework to better check
+    core.info(`Detected analyzer path: ${coreFilePath}`)
+
     const res = await exec.getExecOutput(`"${coreFilePath}"`, ['--version'])
-    core.debug(`Return code is ${res.exitCode}`)
-    core.debug(`OUT is ${res.stdout}`)
-    core.debug(`ERR is ${res.stderr}`)
+    core.debug(
+      `Return code is ${res.exitCode}. Output: '${res.stdout}'. Error: ${res.stderr}`
+    )
     if (res.exitCode !== 0 || !res.stdout.includes('PVS-Studio ')) {
       throw new Error('Unable to install PVS-Studio')
     }
 
-    //if (!output.includes('PVS-Studio 7')) {
-    //  throw new Error('Unable to install PVS-Studio') //<< always here
-    //}
-    core.debug(`Successfuly installed ${res.stdout}`)
+    core.info(`Successfuly installed ${res.stdout}`)
   } catch (error) {
     core.setFailed(error.message)
   }
@@ -6682,10 +6670,41 @@ async function installAnalyzer() {
 
 async function getAnalyzerCorePath() {
   if (process.platform === 'win32') {
-    // todo check registry also
+    // todo check registry too
     return 'C:\\Program Files (x86)\\PVS-Studio\\x64\\PVS-Studio.exe'
   }
   return io.which('pvs-studio')
+}
+
+function customSplit(str) {
+  if (str.length === 0) {
+    return []
+  }
+  const regex = /[;\n]/
+  const parts = str.split(regex)
+  const filteredParts = parts.filter(part => part.trim() !== '')
+  return filteredParts
+}
+
+async function runAnalyzer() {
+  let runArgs = [
+    '-f',
+    `"${core.getInput('file-to-analyze', { required: true, trimWhitespace: true })}"`,
+    '-a',
+    `${core.getInput('analysis-mode', { required: false, trimWhitespace: true })}`
+  ]
+  core.debug(`1Run args: ${runArgs}`)
+
+  const excludesText = core.getInput('excluded-dirs')
+  core.debug(`Basic excludes: ${excludesText}`)
+
+  const excludedDirs = customSplit(excludesText)
+  core.debug(`Directories to exclude: ${excludedDirs}`)
+  for (const excludedDir of excludedDirs) {
+    runArgs.push('-e')
+    runArgs.push(`"${excludedDir}"`)
+  }
+  core.debug(`Total runArgs: ${runArgs}`)
 }
 
 module.exports = {
