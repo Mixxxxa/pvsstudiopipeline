@@ -10802,7 +10802,7 @@ const core = __nccwpck_require__(2186)
 const exec = __nccwpck_require__(1514)
 const tc = __nccwpck_require__(7784)
 const io = __nccwpck_require__(7436)
-const fs = __nccwpck_require__(7561)
+const fs = __nccwpck_require__(3977)
 const temp = __nccwpck_require__(8023)
 
 //const { wait } = require('./wait')
@@ -10911,9 +10911,9 @@ async function getLicenseFromEnv() {
   if (name && key) {
     core.debug('NAME AND KEY FOUND')
     const licenseData = `${name}\n${key}`
-    temp.open('pvs', function (err, info) {
+    temp.open('pvs', async function (err, info) {
       if (!err) {
-        fs.writeFile(info.fd, licenseData, err => {
+        await fs.writeFile(info.fd, licenseData, err => {
           if (err) {
             throw new Error(
               `Unable to write temporary license file to ${info.path}`
@@ -11099,11 +11099,11 @@ module.exports = require("net");
 
 /***/ }),
 
-/***/ 7561:
+/***/ 3977:
 /***/ ((module) => {
 
 "use strict";
-module.exports = require("node:fs");
+module.exports = require("node:fs/promises");
 
 /***/ }),
 

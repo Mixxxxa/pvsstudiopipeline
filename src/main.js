@@ -2,7 +2,7 @@ const core = require('@actions/core')
 const exec = require('@actions/exec')
 const tc = require('@actions/tool-cache')
 const io = require('@actions/io')
-const fs = require('node:fs')
+const fs = require('node:fs/promises')
 const temp = require('temp')
 
 //const { wait } = require('./wait')
@@ -111,9 +111,9 @@ async function getLicenseFromEnv() {
   if (name && key) {
     core.debug('NAME AND KEY FOUND')
     const licenseData = `${name}\n${key}`
-    temp.open('pvs', function (err, info) {
+    temp.open('pvs', async function (err, info) {
       if (!err) {
-        fs.writeFile(info.fd, licenseData, err => {
+        await fs.writeFile(info.fd, licenseData, err => {
           if (err) {
             throw new Error(
               `Unable to write temporary license file to ${info.path}`
