@@ -10900,9 +10900,16 @@ async function getAnalyzerPath() {
 async function getLicenseFromEnv() {
   const name = process.env.PVS_STUDIO_NAME
   const key = process.env.PVS_STUDIO_KEY
+  if (name) {
+    core.debug('NAME FOUND')
+  }
+  if (key) {
+    core.debug('KEY FOUND')
+  }
 
   let tempLicenseFilePath = ''
   if (name && key) {
+    core.debug('NAME AND KEY FOUND')
     const licenseData = `${name}\n${key}`
     temp.open('pvs', function (err, info) {
       if (!err) {
@@ -10912,8 +10919,11 @@ async function getLicenseFromEnv() {
               `Unable to write temporary license file to ${info.path}`
             )
           }
+          core.debug('SET LICENSE FILE PATH')
           tempLicenseFilePath = info.path
         })
+      } else {
+        core.debug('UNABLE TO OPEN FILE')
       }
     })
   }
@@ -10984,6 +10994,7 @@ async function prepareArgs() {
   } else {
     const tempLicenseFile = await getLicenseFromEnv()
     if (!tempLicenseFile) {
+      core.debug(`FAILED TO WRITE TEMP LIC ${tempLicenseFile}`)
       throw new Error(
         'License file or corresponding environment variables must be set'
       )
