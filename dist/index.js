@@ -6676,6 +6676,14 @@ async function getAnalyzerCorePath() {
   return io.which('pvs-studio')
 }
 
+async function getAnalyzerPath() {
+  if (process.platform === 'win32') {
+    // todo check registry too
+    return 'C:\\Program Files (x86)\\PVS-Studio\\CompileCommandsAnalyzer.exe'
+  }
+  return io.which('pvs-studio')
+}
+
 function customSplit(str) {
   if (str.length === 0) {
     return []
@@ -6686,25 +6694,86 @@ function customSplit(str) {
   return filteredParts
 }
 
-async function runAnalyzer() {
-  let runArgs = [
+async function prepareArgs() {
+  const OptionalWithTrim = {
+    required: false,
+    trimWhitespace: true
+  }
+
+  const processMultipleArgsFromText = (container, flag, text) => {
+    if (text.length === 0) {
+      return
+    }
+
+    const regex = /[;\n]/
+    const parts = text.split(regex)
+    const filteredParts = parts.filter(part => part.trim() !== '')
+
+    for (let value of filteredParts) {
+      if (flag) {
+        container.push(flag)
+      }
+      container.push(value)
+    }
+  }
+
+  let args = [
     '-f',
     `"${core.getInput('file-to-analyze', { required: true, trimWhitespace: true })}"`,
     '-a',
-    `${core.getInput('analysis-mode', { required: false, trimWhitespace: true })}`
+    `${core.getInput('analysis-mode', OptionalWithTrim)}`,
+    '-o',
+    `${core.getInput('output-file', OptionalWithTrim)}`
   ]
-  core.debug(`1Run args: ${runArgs}`)
 
-  const excludesText = core.getInput('excluded-dirs')
-  core.debug(`Basic excludes: ${excludesText}`)
+  const excludesText = core.getInput('excluded-dirs', OptionalWithTrim)
+  processMultipleArgsFromText(args, '-e', excludesText)
 
-  const excludedDirs = customSplit(excludesText)
-  core.debug(`Directories to exclude: ${excludedDirs}`)
-  for (const excludedDir of excludedDirs) {
-    runArgs.push('-e')
-    runArgs.push(`"${excludedDir}"`)
+  const suppressText = core.getInput('suppress-files', OptionalWithTrim)
+  processMultipleArgsFromText(args, '-s', suppressText)
+
+  const rulesConfigsText = core.getInput('rules-configs', OptionalWithTrim)
+  processMultipleArgsFromText(args, '-R', rulesConfigsText)
+
+  // core.debug(`Basic excludes: ${excludesText}`)
+  // const excludedDirs = customSplit(excludesText)
+  // core.debug(`Directories to exclude: ${excludedDirs}`)
+  // for (const excludedDir of excludedDirs) {
+  //   args.push('-e')
+  //   args.push(`"${excludedDir}"`)
+  // }
+
+  const parallel = core.getInput('parallel', OptionalWithTrim)
+  if (parallel && parallel !== '0') {
+    args.push('-j')
+    args.push(parallel)
   }
-  core.debug(`Total runArgs: ${runArgs}`)
+
+  const sourceTreeRoot = core.getInput('source-tree-root', OptionalWithTrim)
+  if (sourceTreeRoot) {
+    args.push('-r')
+    args.push(`"${sourceTreeRoot}"`)
+  }
+
+  const additionalArgsText = core.getInput('additional-args', OptionalWithTrim)
+  processMultipleArgsFromText(args, '', additionalArgsText)
+
+  core.debug(`Arguments for analyzer: ${args}`)
+  return args
+}
+
+async function runAnalyzer() {
+  const runArgs = await prepareArgs()
+  core.debug(`Args before run: ${runArgs}`)
+  const analyzerExecutable = await getAnalyzerPath()
+  core.debug(`Found analyzer path: ${analyzerExecutable}`)
+
+  const runResult = await exec.getExecOutput(`"${analyzerExecutable}"`, runArgs)
+  if (runResult.exitCode !== 0) {
+    throw new Error(
+      `Analyzer exited with code ${runResult.exitCode}. Details: ${runResult}`
+    )
+  }
 }
 
 module.exports = {

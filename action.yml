@@ -13,20 +13,44 @@ inputs:
       values must be separated by ';', e.g. 'GA;OP;64'"
     required: false
     default: 'GA;OP'
+  output-format:
+    description:
+      'Render types for output. Avaliable formats can be found in documentation.'
+    required: true
+  output-file:
+    description: 'Output file.'
+    required: true
+  source-tree-root:
+    description: 'Replace absolute paths in report with relative paths'
+    required: false
+    default: ''
+  parallel:
+    description: 'Allow to run N PVS-Studio analyzers at once'
+    required: false
+    default: 0
   excluded-dirs:
     description:
-      'Directories whose files are not necessary to check. Several values must
-      be separated by '';'', e.g.
-      ''C:\dev\project\thirdparty;C:\dev\project\libs'''
+      'Excludes from the report all warnings issued in certain files (wildcards
+      supported). Several values must be separated by semicolon or new line,
+      e.g. ''C:\dev\project\thirdparty;C:\dev\project\libs'''
     required: false
+    default: ''
+  suppress-files:
+    description: 'Path to suppress files.'
+    required: false
+    default: ''
+  rules-configs:
+    description:
+      'Paths to the diagnostics configuration file (.pvsconfig) or to the
+      directory containing configuration files'
+    required: false
+    default: ''
   additional-args:
-    description: 'Additional args passed to analyzer'
+    description:
+      'Additional args passed to analyzer. See documentation for more
+      information.'
     required: false
-
-# Define your outputs here.
-outputs:
-  time:
-    description: 'Your output description here'
+    default: ''
 
 runs:
   using: node20
