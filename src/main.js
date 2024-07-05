@@ -19,6 +19,7 @@ async function run() {
     core.debug('RUN')
     await installAnalyzer()
     await runAnalyzer()
+    await convertReport()
     core.debug('FINISH')
 
     // const ms = core.getInput('milliseconds', { required: true })
@@ -83,6 +84,63 @@ async function installAnalyzer() {
   }
 }
 
+async function prepareConverterArgs() {
+  const RequiredWithTrim = {
+    required: false,
+    trimWhitespace: true
+  }
+
+  const OptionalWithTrim = {
+    required: false,
+    trimWhitespace: true
+  }
+
+  let args = [
+    '-t',
+    `${path.core.getInput('output-format', RequiredWithTrim)}`,
+    '-a',
+    'all'
+  ]
+
+  const outputText = core.getInput('output-file', RequiredWithTrim)
+  args.push('-o')
+  args.push(outputText)
+
+  const sourceTreeRoot = core.getInput('source-tree-root', OptionalWithTrim)
+  if (sourceTreeRoot) {
+    args.push('-R')
+    args.push('toRelative')
+    args.push('-r')
+    args.push(`${sourceTreeRoot}`)
+  }
+
+  args.push(await createRawLogPath(outputText))
+
+  return args
+}
+
+async function convertReport() {
+  const runArgs = await prepareConverterArgs()
+  core.debug(`Args before run converter: ${runArgs}`)
+  const executable = await getConverterPath()
+  core.debug(`Found converter path: ${executable}`)
+
+  const runResult = await exec.getExecOutput(`"${executable}"`, runArgs)
+  if (runResult.exitCode !== 0) {
+    throw new Error(
+      `Converter exited with code ${runResult.exitCode}. Details: ${runResult}`
+    )
+  }
+}
+
+async function getConverterPath() {
+  if (process.platform === 'win32') {
+    // todo check registry too
+    return 'C:\\Program Files (x86)\\PVS-Studio\\HtmlGenerator.exe'
+  }
+  return io.which('plog-converter')
+}
+
 async function getAnalyzerCorePath() {
   if (process.platform === 'win32') {
     // todo check registry too
@@ -140,23 +198,22 @@ async function getLicenseFromEnv() {
     // TODO rework
     await fsp.writeFile(tempLicFilePath, licenseData)
     tempLicenseFilePath = tempLicFilePath
-
-    // , err => {
-    //   if (err) {
-    //     throw new Error(
-    //       `Unable to write temporary license file to ${tempLicFilePath}`
-    //     )
-    //   }
-    //   core.debug('SET LICENSE FILE PATH')
-    //   //return info.path
-    //   tempLicenseFilePath = tempLicFilePath
-    // })
   }
   return tempLicenseFilePath
 }
 
-async function prepareArgs() {
+async function createRawLogPath(sourcePath) {
+  const parts = path.parse(sourcePath)
+  return `${parts.dir}/${parts.name}-raw.log`
+}
+
+async function prepareAnalyzerArgs() {
   const OptionalWithTrim = {
+    required: false,
+    trimWhitespace: true
+  }
+
+  const RequiredWithTrim = {
     required: false,
     trimWhitespace: true
   }
@@ -181,12 +238,18 @@ async function prepareArgs() {
   let args = [
     'analyze',
     '-f',
-    `${core.getInput('file-to-analyze', { required: true, trimWhitespace: true })}`,
+    `${path.core.getInput('file-to-analyze', { required: true, trimWhitespace: true })}`,
     '-a',
-    `${core.getInput('analysis-mode', OptionalWithTrim)}`,
-    '-o',
-    `${core.getInput('output-file', OptionalWithTrim)}`
+    `${core.getInput('analysis-mode', OptionalWithTrim)}`
   ]
+
+  const outputText = core.getInput('output-file', RequiredWithTrim)
+  //const outputParts = path.parse(outputText);
+  if (outputText) {
+    args.push('-o')
+    args.push(await createRawLogPath(outputText))
+    //args.push(`${outputParts.dir}/${outputParts.name}-raw.log`)
+  }
 
   const excludesText = core.getInput('excluded-dirs', OptionalWithTrim)
   processMultipleArgsFromText(args, '-e', excludesText)
@@ -201,12 +264,6 @@ async function prepareArgs() {
   if (parallel && parallel !== '0') {
     args.push('-j')
     args.push(parallel)
-  }
-
-  const sourceTreeRoot = core.getInput('source-tree-root', OptionalWithTrim)
-  if (sourceTreeRoot) {
-    args.push('-r')
-    args.push(`${sourceTreeRoot}`)
   }
 
   const additionalArgsText = core.getInput('additional-args', OptionalWithTrim)
@@ -232,7 +289,7 @@ async function prepareArgs() {
 }
 
 async function runAnalyzer() {
-  const runArgs = await prepareArgs()
+  const runArgs = await prepareAnalyzerArgs()
   core.debug(`Args before run: ${runArgs}`)
   const analyzerExecutable = await getAnalyzerPath()
   core.debug(`Found analyzer path: ${analyzerExecutable}`)
