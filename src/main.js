@@ -97,7 +97,7 @@ async function prepareConverterArgs() {
 
   let args = [
     '-t',
-    `${path.core.getInput('output-format', RequiredWithTrim)}`,
+    `${core.getInput('output-format', RequiredWithTrim)}`,
     '-a',
     'all'
   ]
