@@ -91,6 +91,7 @@ async function prepareConverterArgs() {
   const outputText = core.getInput('output-file', RequiredWithTrim)
   args.push('-o')
   args.push(outputText)
+  core.setOutput('report', outputText)
 
   const sourceTreeRoot = core.getInput('source-tree-root', OptionalWithTrim)
   if (sourceTreeRoot) {
@@ -117,7 +118,6 @@ async function convertReport() {
       `Converter exited with code ${runResult.exitCode}. Details: ${runResult}`
     )
   }
-  core.setOutput('report', runArgs.at(-1))
 }
 
 async function getConverterPath() {
@@ -231,11 +231,11 @@ async function prepareAnalyzerArgs() {
   ]
 
   const outputText = core.getInput('output-file', RequiredWithTrim)
-  //const outputParts = path.parse(outputText);
   if (outputText) {
     args.push('-o')
     args.push(await createRawLogPath(outputText))
-    //args.push(`${outputParts.dir}/${outputParts.name}-raw.log`)
+    const rawOutputFilePath = await createRawLogPath(outputText)
+    core.setOutput('raw-report', rawOutputFilePath)
   }
 
   const excludesText = core.getInput('excluded-dirs', OptionalWithTrim)
@@ -287,7 +287,6 @@ async function runAnalyzer() {
       `Analyzer exited with code ${runResult.exitCode}. Details: ${runResult}`
     )
   }
-  core.setOutput('raw-report', runArgs.at(-1))
 }
 
 module.exports = {
