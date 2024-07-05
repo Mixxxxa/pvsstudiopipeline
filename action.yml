@@ -2,7 +2,6 @@ name: 'PVS-Studio scan example'
 description: 'Easy way to configure PVS-Studio analyzer on GitHub'
 author: 'Your name or organization here'
 
-# Define your inputs here.
 inputs:
   file-to-analyze:
     description: 'File to analyze (Compile Commands Database or trace-file)'
@@ -55,6 +54,14 @@ inputs:
       information.'
     required: false
     default: ''
+
+outputs:
+  report:
+    description: 'Path to ready-to-use report in a specified format'
+
+  raw-report:
+    description:
+      'Path to raw analyzer report for further conversion and processing'
 
 runs:
   using: node20
