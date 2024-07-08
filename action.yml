@@ -2,6 +2,11 @@ name: 'PVS-Studio scan example'
 description: 'Easy way to configure PVS-Studio analyzer on GitHub'
 author: 'Your name or organization here'
 
+# Add your action's branding here. This will appear on the GitHub Marketplace.
+branding:
+  icon: 'heart'
+  color: 'red'
+
 inputs:
   file-to-analyze:
     description: 'File to analyze (Compile Commands Database or trace-file)'
