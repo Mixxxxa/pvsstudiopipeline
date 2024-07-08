@@ -1,11 +1,11 @@
-const core = require('@actions/core')
-const exec = require('@actions/exec')
-const tc = require('@actions/tool-cache')
-const io = require('@actions/io')
-const fsp = require('node:fs/promises')
-const temp = require('temp')
-const os = require('node:os')
-const path = require('node:path')
+import core from '@actions/core'
+import exec from '@actions/exec'
+import tc from '@actions/tool-cache'
+import io from '@actions/io'
+import fsp from 'node:fs/promises'
+//import temp from 'temp'
+import os from 'node:os'
+import path from 'node:path'
 
 //const { wait } = require('./wait')
 //import { platform } from '@actions/core'
@@ -14,60 +14,58 @@ const path = require('node:path')
  * The main function for the action.
  * @returns {Promise<void>} Resolves when the action is complete.
  */
-async function run() {
+export async function run(): Promise<void> {
   try {
     core.debug('RUN')
     await installAnalyzer()
     await runAnalyzer()
     await convertReport()
     core.debug('FINISH')
-  } catch (error) {
+  } catch (error: any) {
     core.setFailed(error.message)
   }
 }
 
-async function installAnalyzer() {
-  try {
-    core.debug('Trying to install analyzer')
-    if (process.platform === 'win32') {
-      core.debug('Detected Windows')
-      await exec.exec('choco', ['install', 'pvs-studio'])
-    } else if (process.platform === 'darwin') {
-      core.debug('Detected macos1')
-      await exec.exec('brew update')
-      await exec.exec('brew', ['install', 'viva64/pvs-studio/pvs-studio'])
-    } else if (process.platform === 'linux') {
-      core.debug('Detected Linux1')
-      const distFilePath = await tc.downloadTool(
-        'https://cdn.pvs-studio.com/pvs-studio-latest.deb'
-      )
-      const newDistFilePath = await `${distFilePath}.deb`
-      await io.mv(distFilePath, newDistFilePath)
-      await exec.exec('sudo', ['apt-get', 'update'])
-      await exec.exec('sudo', [
-        'apt-get',
-        'install',
-        `${core.toPlatformPath(newDistFilePath)}`
-      ])
-    } else {
-      throw new Error('Unsuppoted OS')
-    }
-
-    const coreFilePath = await getAnalyzerCorePath()
-    core.info(`Detected analyzer path: ${coreFilePath}`)
-
-    const res = await exec.getExecOutput(`"${coreFilePath}"`, ['--version'])
-    core.debug(
-      `Return code is ${res.exitCode}. Output: '${res.stdout}'. Error: ${res.stderr}`
+async function installAnalyzer(): Promise<void> {
+  core.debug('Trying to install analyzer')
+  if (process.platform === 'win32') {
+    core.debug('Detected Windows')
+    await exec.exec('choco', ['install', 'pvs-studio'])
+  } else if (process.platform === 'darwin') {
+    core.debug('Detected macos1')
+    await exec.exec('brew update')
+    await exec.exec('brew', ['install', 'viva64/pvs-studio/pvs-studio'])
+  } else if (process.platform === 'linux') {
+    core.debug('Detected Linux1')
+    const distFilePath: string = await tc.downloadTool(
+      'https://cdn.pvs-studio.com/pvs-studio-latest.deb'
     )
-    if (res.exitCode !== 0 || !res.stdout.includes('PVS-Studio ')) {
-      throw new Error('Unable to install PVS-Studio')
-    }
-
-    core.info(`Successfuly installed ${res.stdout}`)
-  } catch (error) {
-    core.setFailed(error.message)
+    const newDistFilePath = `${distFilePath}.deb`
+    await io.mv(distFilePath, newDistFilePath)
+    await exec.exec('sudo', ['apt-get', 'update'])
+    await exec.exec('sudo', [
+      'apt-get',
+      'install',
+      `${core.toPlatformPath(newDistFilePath)}`
+    ])
+  } else {
+    throw new Error('Unsuppoted OS')
   }
+
+  const coreFilePath: string = await getAnalyzerCorePath()
+  core.info(`Detected analyzer path: ${coreFilePath}`)
+
+  const res: exec.ExecOutput = await exec.getExecOutput(`"${coreFilePath}"`, [
+    '--version'
+  ])
+  core.debug(
+    `Return code is ${res.exitCode}. Output: '${res.stdout}'. Error: ${res.stderr}`
+  )
+  if (res.exitCode !== 0 || !res.stdout.includes('PVS-Studio ')) {
+    throw new Error('Unable to install PVS-Studio')
+  }
+
+  core.info(`Successfuly installed ${res.stdout}`)
 }
 
 async function prepareConverterArgs() {
@@ -106,7 +104,7 @@ async function prepareConverterArgs() {
   return args
 }
 
-async function convertReport() {
+async function convertReport(): Promise<void> {
   const runArgs = await prepareConverterArgs()
   core.debug(`Args before run converter: ${runArgs}`)
   const executable = await getConverterPath()
@@ -189,7 +187,7 @@ async function getLicenseFromEnv() {
   return tempLicenseFilePath
 }
 
-async function createRawLogPath(sourcePath) {
+function createRawLogPath(sourcePath: string): string {
   const parts = path.parse(sourcePath)
   return `${parts.dir}/${parts.name}-raw.log`
 }
@@ -205,7 +203,11 @@ async function prepareAnalyzerArgs() {
     trimWhitespace: true
   }
 
-  const processMultipleArgsFromText = (container, flag, text) => {
+  const processMultipleArgsFromText = (
+    container: Array<string>,
+    text: string,
+    flag?: string
+  ) => {
     if (text.length === 0) {
       return
     }
@@ -239,13 +241,13 @@ async function prepareAnalyzerArgs() {
   }
 
   const excludesText = core.getInput('excluded-dirs', OptionalWithTrim)
-  processMultipleArgsFromText(args, '-e', excludesText)
+  processMultipleArgsFromText(args, excludesText, '-e')
 
   const suppressText = core.getInput('suppress-files', OptionalWithTrim)
-  processMultipleArgsFromText(args, '-s', suppressText)
+  processMultipleArgsFromText(args, suppressText, '-s')
 
   const rulesConfigsText = core.getInput('rules-configs', OptionalWithTrim)
-  processMultipleArgsFromText(args, '-R', rulesConfigsText)
+  processMultipleArgsFromText(args, rulesConfigsText, '-R')
 
   const parallel = core.getInput('parallel', OptionalWithTrim)
   if (parallel && parallel !== '0') {
@@ -254,7 +256,7 @@ async function prepareAnalyzerArgs() {
   }
 
   const additionalArgsText = core.getInput('additional-args', OptionalWithTrim)
-  processMultipleArgsFromText(args, '', additionalArgsText)
+  processMultipleArgsFromText(args, additionalArgsText)
 
   const licenseFile = core.getInput('licence-file')
   args.push('-l')
@@ -275,7 +277,7 @@ async function prepareAnalyzerArgs() {
   return args
 }
 
-async function runAnalyzer() {
+async function runAnalyzer(): Promise<void> {
   const runArgs = await prepareAnalyzerArgs()
   core.debug(`Args before run: ${runArgs}`)
   const analyzerExecutable = await getAnalyzerPath()
@@ -287,8 +289,4 @@ async function runAnalyzer() {
       `Analyzer exited with code ${runResult.exitCode}. Details: ${runResult}`
     )
   }
-}
-
-module.exports = {
-  run
 }
