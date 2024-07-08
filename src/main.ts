@@ -1,11 +1,10 @@
-import core from '@actions/core'
-import exec from '@actions/exec'
-import tc from '@actions/tool-cache'
-import io from '@actions/io'
-import fsp from 'node:fs/promises'
-//import temp from 'temp'
-import os from 'node:os'
-import path from 'node:path'
+import * as core from '@actions/core'
+import * as exec from '@actions/exec'
+import * as tc from '@actions/tool-cache'
+import * as io from '@actions/io'
+import * as fsp from 'node:fs/promises'
+import * as os from 'node:os'
+import * as path from 'node:path'
 
 //const { wait } = require('./wait')
 //import { platform } from '@actions/core'

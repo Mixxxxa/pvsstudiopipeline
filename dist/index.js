@@ -6589,19 +6589,38 @@ exports["default"] = _default;
 
 "use strict";
 
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.run = void 0;
-const core_1 = __importDefault(__nccwpck_require__(2186));
-const exec_1 = __importDefault(__nccwpck_require__(1514));
-const tool_cache_1 = __importDefault(__nccwpck_require__(7784));
-const io_1 = __importDefault(__nccwpck_require__(7436));
-const promises_1 = __importDefault(__nccwpck_require__(3977));
-//import temp from 'temp'
-const node_os_1 = __importDefault(__nccwpck_require__(612));
-const node_path_1 = __importDefault(__nccwpck_require__(9411));
+const core = __importStar(__nccwpck_require__(2186));
+const exec = __importStar(__nccwpck_require__(1514));
+const tc = __importStar(__nccwpck_require__(7784));
+const io = __importStar(__nccwpck_require__(7436));
+const fsp = __importStar(__nccwpck_require__(3977));
+const os = __importStar(__nccwpck_require__(612));
+const path = __importStar(__nccwpck_require__(9411));
 //const { wait } = require('./wait')
 //import { platform } from '@actions/core'
 /**
@@ -6610,53 +6629,53 @@ const node_path_1 = __importDefault(__nccwpck_require__(9411));
  */
 async function run() {
     try {
-        core_1.default.debug('RUN');
+        core.debug('RUN');
         await installAnalyzer();
         await runAnalyzer();
         await convertReport();
-        core_1.default.debug('FINISH');
+        core.debug('FINISH');
     }
     catch (error) {
-        core_1.default.setFailed(error.message);
+        core.setFailed(error.message);
     }
 }
 exports.run = run;
 async function installAnalyzer() {
-    core_1.default.debug('Trying to install analyzer');
+    core.debug('Trying to install analyzer');
     if (process.platform === 'win32') {
-        core_1.default.debug('Detected Windows');
-        await exec_1.default.exec('choco', ['install', 'pvs-studio']);
+        core.debug('Detected Windows');
+        await exec.exec('choco', ['install', 'pvs-studio']);
     }
     else if (process.platform === 'darwin') {
-        core_1.default.debug('Detected macos1');
-        await exec_1.default.exec('brew update');
-        await exec_1.default.exec('brew', ['install', 'viva64/pvs-studio/pvs-studio']);
+        core.debug('Detected macos1');
+        await exec.exec('brew update');
+        await exec.exec('brew', ['install', 'viva64/pvs-studio/pvs-studio']);
     }
     else if (process.platform === 'linux') {
-        core_1.default.debug('Detected Linux1');
-        const distFilePath = await tool_cache_1.default.downloadTool('https://cdn.pvs-studio.com/pvs-studio-latest.deb');
+        core.debug('Detected Linux1');
+        const distFilePath = await tc.downloadTool('https://cdn.pvs-studio.com/pvs-studio-latest.deb');
         const newDistFilePath = `${distFilePath}.deb`;
-        await io_1.default.mv(distFilePath, newDistFilePath);
-        await exec_1.default.exec('sudo', ['apt-get', 'update']);
-        await exec_1.default.exec('sudo', [
+        await io.mv(distFilePath, newDistFilePath);
+        await exec.exec('sudo', ['apt-get', 'update']);
+        await exec.exec('sudo', [
             'apt-get',
             'install',
-            `${core_1.default.toPlatformPath(newDistFilePath)}`
+            `${core.toPlatformPath(newDistFilePath)}`
         ]);
     }
     else {
         throw new Error('Unsuppoted OS');
     }
     const coreFilePath = await getAnalyzerCorePath();
-    core_1.default.info(`Detected analyzer path: ${coreFilePath}`);
-    const res = await exec_1.default.getExecOutput(`"${coreFilePath}"`, [
+    core.info(`Detected analyzer path: ${coreFilePath}`);
+    const res = await exec.getExecOutput(`"${coreFilePath}"`, [
         '--version'
     ]);
-    core_1.default.debug(`Return code is ${res.exitCode}. Output: '${res.stdout}'. Error: ${res.stderr}`);
+    core.debug(`Return code is ${res.exitCode}. Output: '${res.stdout}'. Error: ${res.stderr}`);
     if (res.exitCode !== 0 || !res.stdout.includes('PVS-Studio ')) {
         throw new Error('Unable to install PVS-Studio');
     }
-    core_1.default.info(`Successfuly installed ${res.stdout}`);
+    core.info(`Successfuly installed ${res.stdout}`);
 }
 async function prepareConverterArgs() {
     const RequiredWithTrim = {
@@ -6669,15 +6688,15 @@ async function prepareConverterArgs() {
     };
     let args = [
         '-t',
-        `${core_1.default.getInput('output-format', RequiredWithTrim)}`,
+        `${core.getInput('output-format', RequiredWithTrim)}`,
         '-a',
         'all'
     ];
-    const outputText = core_1.default.getInput('output-file', RequiredWithTrim);
+    const outputText = core.getInput('output-file', RequiredWithTrim);
     args.push('-o');
     args.push(outputText);
-    core_1.default.setOutput('report', outputText);
-    const sourceTreeRoot = core_1.default.getInput('source-tree-root', OptionalWithTrim);
+    core.setOutput('report', outputText);
+    const sourceTreeRoot = core.getInput('source-tree-root', OptionalWithTrim);
     if (sourceTreeRoot) {
         args.push('-R');
         args.push('toRelative');
@@ -6689,10 +6708,10 @@ async function prepareConverterArgs() {
 }
 async function convertReport() {
     const runArgs = await prepareConverterArgs();
-    core_1.default.debug(`Args before run converter: ${runArgs}`);
+    core.debug(`Args before run converter: ${runArgs}`);
     const executable = await getConverterPath();
-    core_1.default.debug(`Found converter path: ${executable}`);
-    const runResult = await exec_1.default.getExecOutput(`"${executable}"`, runArgs);
+    core.debug(`Found converter path: ${executable}`);
+    const runResult = await exec.getExecOutput(`"${executable}"`, runArgs);
     if (runResult.exitCode !== 0) {
         throw new Error(`Converter exited with code ${runResult.exitCode}. Details: ${runResult}`);
     }
@@ -6702,30 +6721,30 @@ async function getConverterPath() {
         // todo check registry too
         return 'C:\\Program Files (x86)\\PVS-Studio\\HtmlGenerator.exe';
     }
-    return io_1.default.which('plog-converter');
+    return io.which('plog-converter');
 }
 async function getAnalyzerCorePath() {
     if (process.platform === 'win32') {
         // todo check registry too
         return 'C:\\Program Files (x86)\\PVS-Studio\\x64\\PVS-Studio.exe';
     }
-    return io_1.default.which('pvs-studio');
+    return io.which('pvs-studio');
 }
 async function getAnalyzerPath() {
     if (process.platform === 'win32') {
         // todo check registry too
         return 'C:\\Program Files (x86)\\PVS-Studio\\CompilerCommandsAnalyzer.exe';
     }
-    return io_1.default.which('pvs-studio-analyzer');
+    return io.which('pvs-studio-analyzer');
 }
 async function getLicenseFromEnv() {
     const name = process.env.PVS_STUDIO_LICENSE_NAME;
     const key = process.env.PVS_STUDIO_LICENSE_KEY;
     if (name) {
-        core_1.default.debug('NAME FOUND');
+        core.debug('NAME FOUND');
     }
     if (key) {
-        core_1.default.debug('KEY FOUND');
+        core.debug('KEY FOUND');
     }
     // const check = async data => {
     //   temp.open('pvs', (err, info) => {
@@ -6748,19 +6767,19 @@ async function getLicenseFromEnv() {
     // }
     let tempLicenseFilePath = '';
     if (name && key) {
-        core_1.default.debug('NAME AND KEY FOUND');
+        core.debug('NAME AND KEY FOUND');
         const licenseData = `${name}\n${key}`;
-        const tempDir = await promises_1.default.mkdtemp(node_path_1.default.join(node_os_1.default.tmpdir(), 'pvs-'));
+        const tempDir = await fsp.mkdtemp(path.join(os.tmpdir(), 'pvs-'));
         const tempLicFilePath = `${tempDir}.lic`;
-        core_1.default.debug(`Trying to write license to ${tempLicFilePath}`);
+        core.debug(`Trying to write license to ${tempLicFilePath}`);
         // TODO rework
-        await promises_1.default.writeFile(tempLicFilePath, licenseData);
+        await fsp.writeFile(tempLicFilePath, licenseData);
         tempLicenseFilePath = tempLicFilePath;
     }
     return tempLicenseFilePath;
 }
 function createRawLogPath(sourcePath) {
-    const parts = node_path_1.default.parse(sourcePath);
+    const parts = path.parse(sourcePath);
     return `${parts.dir}/${parts.name}-raw.log`;
 }
 async function prepareAnalyzerArgs() {
@@ -6789,31 +6808,31 @@ async function prepareAnalyzerArgs() {
     let args = [
         'analyze',
         '-f',
-        `${core_1.default.getInput('file-to-analyze', { required: true, trimWhitespace: true })}`,
+        `${core.getInput('file-to-analyze', { required: true, trimWhitespace: true })}`,
         '-a',
-        `${core_1.default.getInput('analysis-mode', OptionalWithTrim)}`
+        `${core.getInput('analysis-mode', OptionalWithTrim)}`
     ];
-    const outputText = core_1.default.getInput('output-file', RequiredWithTrim);
+    const outputText = core.getInput('output-file', RequiredWithTrim);
     if (outputText) {
         args.push('-o');
         args.push(await createRawLogPath(outputText));
         const rawOutputFilePath = await createRawLogPath(outputText);
-        core_1.default.setOutput('raw-report', rawOutputFilePath);
+        core.setOutput('raw-report', rawOutputFilePath);
     }
-    const excludesText = core_1.default.getInput('excluded-dirs', OptionalWithTrim);
+    const excludesText = core.getInput('excluded-dirs', OptionalWithTrim);
     processMultipleArgsFromText(args, excludesText, '-e');
-    const suppressText = core_1.default.getInput('suppress-files', OptionalWithTrim);
+    const suppressText = core.getInput('suppress-files', OptionalWithTrim);
     processMultipleArgsFromText(args, suppressText, '-s');
-    const rulesConfigsText = core_1.default.getInput('rules-configs', OptionalWithTrim);
+    const rulesConfigsText = core.getInput('rules-configs', OptionalWithTrim);
     processMultipleArgsFromText(args, rulesConfigsText, '-R');
-    const parallel = core_1.default.getInput('parallel', OptionalWithTrim);
+    const parallel = core.getInput('parallel', OptionalWithTrim);
     if (parallel && parallel !== '0') {
         args.push('-j');
         args.push(parallel);
     }
-    const additionalArgsText = core_1.default.getInput('additional-args', OptionalWithTrim);
+    const additionalArgsText = core.getInput('additional-args', OptionalWithTrim);
     processMultipleArgsFromText(args, additionalArgsText);
-    const licenseFile = core_1.default.getInput('licence-file');
+    const licenseFile = core.getInput('licence-file');
     args.push('-l');
     if (licenseFile) {
         args.push(licenseFile);
@@ -6821,20 +6840,20 @@ async function prepareAnalyzerArgs() {
     else {
         const tempLicenseFile = await getLicenseFromEnv();
         if (!tempLicenseFile) {
-            core_1.default.debug(`FAILED TO WRITE TEMP LIC ${tempLicenseFile}`);
+            core.debug(`FAILED TO WRITE TEMP LIC ${tempLicenseFile}`);
             throw new Error('License file or corresponding environment variables must be set');
         }
         args.push(tempLicenseFile);
     }
-    core_1.default.debug(`Arguments for analyzer: ${args}`);
+    core.debug(`Arguments for analyzer: ${args}`);
     return args;
 }
 async function runAnalyzer() {
     const runArgs = await prepareAnalyzerArgs();
-    core_1.default.debug(`Args before run: ${runArgs}`);
+    core.debug(`Args before run: ${runArgs}`);
     const analyzerExecutable = await getAnalyzerPath();
-    core_1.default.debug(`Found analyzer path: ${analyzerExecutable}`);
-    const runResult = await exec_1.default.getExecOutput(`"${analyzerExecutable}"`, runArgs);
+    core.debug(`Found analyzer path: ${analyzerExecutable}`);
+    const runResult = await exec.getExecOutput(`"${analyzerExecutable}"`, runArgs);
     if (runResult.exitCode !== 0) {
         throw new Error(`Analyzer exited with code ${runResult.exitCode}. Details: ${runResult}`);
     }
