@@ -8,9 +8,14 @@ branding:
   color: 'red'
 
 inputs:
-  file-to-analyze:
+  project-file:
     description: 'File to analyze (Compile Commands Database or trace-file)'
-    required: true
+    required: false
+    default: ''
+  trace-args:
+    description: '[For Linux and macOS only] Allows you to trace the build tool to collect all files to analyze and their compilation options'
+    required: false
+    default: ''
   analysis-mode:
     description:
       "The group of warnings that will be activated during analysis. Several
@@ -20,10 +25,12 @@ inputs:
   output-format:
     description:
       'Render types for output. Avaliable formats can be found in documentation.'
-    required: true
+    required: false
+    default: ''
   output-file:
     description: 'Output file.'
-    required: true
+    required: false
+    default: ${{ github.workspace }}/PVS-Studio.log
   license-file:
     description: 'PVS-Studio license file'
     required: false

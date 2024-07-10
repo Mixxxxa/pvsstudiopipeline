@@ -38,9 +38,9 @@ namespace PVSStudio {
   }
 
   export namespace Utils {
-    export function splitStringValues(text: string): Array<string> {
-      if (text.length === 0) {
-        return [];
+    export function splitStringValues(text: string): Array<string> | undefined {
+      if (!text || text.length === 0) {
+        return undefined;
       }
 
       const regex = /[;\n]/
@@ -203,6 +203,39 @@ namespace PVSStudio {
       RulesConfigFile = "-R",
       ParallelCount = "-j"
     };
+
+    /**
+     * Analysis task for PVS-Studio C++ analyzer
+     * 
+     * The class contains all the options that can be obtained from the GitHub Actions API.
+     * These data are used to generate arguments for launching the analyzer.
+     */
+    export class CppAnalyzerTask {
+      traceAnalysisCommand?: string;
+      projectFilePath?: string;//
+
+      licenseFilePath!: string;//
+      excludedDirs?: Array<string>;//
+      rulesConfigFiles?: Array<string>;//
+      suppressFiles?: Array<string>;//
+      additionalArgs?: Array<string>;//
+      parallelCount?: number;//
+      analysisMode?: string;//
+      
+      sourceTreeRoot?: string;
+      
+      outputFormat?: string;
+      outputReportFilePath!: string;
+      outputRawReportFilePath!: string;//
+
+      public shouldBeConverted() : boolean {
+        return Boolean(this.outputFormat && this.outputFormat.length !== 0);
+      }
+
+      public traceMode() : boolean {
+        return Boolean(this.traceAnalysisCommand && this.traceAnalysisCommand.length !== 0);
+      }
+    };
     
     export class CppAnalyzer extends AbstractAnalyzer {
     
@@ -227,46 +260,149 @@ namespace PVSStudio {
         const parts = path.parse(sourceFilePath)
         return `${parts.dir}/${parts.name}-raw.log`
       }
-    
-      protected async createArgs() : Promise<Array<string>> {
-        const Flags = CppAnalyzerCLIFlags;
-        let args = [
-          Flags.AnalyzeModeKey,
-          Flags.InputFile, core.getInput('file-to-analyze', Utils.RequiredInputWithTrim),
-          Flags.AnalysisMode, core.getInput('analysis-mode', Utils.OptionalInputWithTrim)
-        ]
 
-        const outputText = core.getInput('output-file', Utils.RequiredInputWithTrim);
-        args.push(Flags.InputFile, this.generateRawLogFilePath(outputText));
+      protected async generateAnalysisTask() : Promise<CppAnalyzerTask> {
+        let task = new CppAnalyzerTask();
+        task.projectFilePath = core.getInput('file-to-analyze', Utils.OptionalInputWithTrim);
+        task.traceAnalysisCommand = core.getInput('trace-args', Utils.OptionalInputWithTrim);
+        if(task.projectFilePath && task.traceAnalysisCommand) {
+          throw new PVSStudio.Errors.PVSError('Only one analysis mode can be selected at once (project or trace).')
+        }
 
-        const excludesText = core.getInput('excluded-dirs', Utils.OptionalInputWithTrim)
-        Utils.appendArgs(args, Utils.splitStringValues(excludesText), Flags.ExcludedDir);
+        task.analysisMode = core.getInput('analysis-mode', Utils.OptionalInputWithTrim);
         
-        const suppressText = core.getInput('suppress-files', Utils.OptionalInputWithTrim)
-        Utils.appendArgs(args, Utils.splitStringValues(suppressText), Flags.SuppressFile);
-
-        const rulesConfigsText = core.getInput('rules-configs', Utils.OptionalInputWithTrim)
-        Utils.appendArgs(args, Utils.splitStringValues(rulesConfigsText), Flags.RulesConfigFile);
-
+        task.sourceTreeRoot = core.getInput('source-tree-root', Utils.OptionalInputWithTrim);
+        task.excludedDirs = Utils.splitStringValues(core.getInput('excluded-dirs', 
+                                                    Utils.OptionalInputWithTrim));
+        task.suppressFiles = Utils.splitStringValues(core.getInput('suppress-files', 
+                                                     Utils.OptionalInputWithTrim));
+        task.rulesConfigFiles = Utils.splitStringValues(core.getInput('rules-configs', 
+                                                        Utils.OptionalInputWithTrim));
+        task.additionalArgs = Utils.splitStringValues(core.getInput('additional-args', 
+                                                      Utils.OptionalInputWithTrim));
+        
         const parallelText = core.getInput('parallel', Utils.OptionalInputWithTrim)
         if (parallelText && parallelText !== '0') {
-          args.push(Flags.ParallelCount, parallelText)
+          const parallelValue = parseInt(parallelText, 10);
+          if(isNaN(parallelValue)) {
+            throw new PVSStudio.Errors.PVSError("The 'parallel' input should be a number!")
+          }
+          task.parallelCount = parallelValue;
+        }
+
+        const outputFormatText = core.getInput('output-format', Utils.OptionalInputWithTrim);
+        const outputFileText = core.getInput('output-file', Utils.OptionalInputWithTrim);
+        if(!outputFileText) {
+          throw new PVSStudio.Errors.PVSError("The 'output-file' input should be a specified!");
+        }
+        
+        task.outputReportFilePath = outputFileText;
+        // If the output format is set, we need to save the raw report separately 
+        if(outputFormatText) {
+          task.outputFormat = outputFormatText;
+          const parts = path.parse(outputFileText);
+          task.outputRawReportFilePath = `${parts.dir}/${parts.name}-raw.log`
+        } else {
+          task.outputRawReportFilePath = outputFileText;
         }
 
         const licenseFileText = core.getInput('licence-file', Utils.OptionalInputWithTrim);
-        args.push(Flags.LicenseFile);
         if(licenseFileText) {
-          args.push(licenseFileText)
+          task.licenseFilePath = licenseFileText;
         } else {
-          const tempLicenseFilePath = await this.backend.exportLicenseFromEnvVars();
-          args.push(tempLicenseFilePath)
+          task.licenseFilePath = await this.backend.exportLicenseFromEnvVars();
         }
 
+        return task;
+      }
+
+      protected createArgs(task: PVSStudio.Analyzer.CppAnalyzerTask) : Array<string> {
+        let args: Array<string> = [];
+        args.push('analyze');
+        if(!task.projectFilePath) {
+          throw new PVSStudio.Errors.PVSError("The project file (compile DB or trace-file) should be a specified!");
+        }
+
+        args.push('-f', task.projectFilePath,
+          '-o', task.outputRawReportFilePath,
+          '-l', task.licenseFilePath
+        );
+
+        if(task.analysisMode){
+          args.push('-a', task.analysisMode);
+        }
+
+        if(task.parallelCount) {
+          args.push('-j', task.parallelCount.toString());
+        }
+
+        if(task.excludedDirs) {
+          for(let dir of task.excludedDirs) {
+            args.push('-e', dir);
+          }
+        }
+
+        if(task.rulesConfigFiles) {
+          for(let file of task.rulesConfigFiles) {
+            args.push('-R', file);
+          }
+        }
+
+        if(task.suppressFiles) {
+          for(let file of task.suppressFiles) {
+            args.push('-s', file);
+          }
+        }
+
+        if(task.additionalArgs) {
+          for(let arg of task.additionalArgs) {
+            args.push(arg);
+          }
+        }
         return args;
       }
     
+      // protected async createArgs() : Promise<Array<string>> {
+      //   const Flags = CppAnalyzerCLIFlags;
+      //   let args = [
+      //     Flags.AnalyzeModeKey,
+      //     Flags.InputFile, core.getInput('file-to-analyze', Utils.RequiredInputWithTrim),
+      //     Flags.AnalysisMode, core.getInput('analysis-mode', Utils.OptionalInputWithTrim)
+      //   ]
+
+      //   const outputText = core.getInput('output-file', Utils.RequiredInputWithTrim);
+      //   args.push(Flags.InputFile, this.generateRawLogFilePath(outputText));
+
+      //   const excludesText = core.getInput('excluded-dirs', Utils.OptionalInputWithTrim)
+      //   Utils.appendArgs(args, Utils.splitStringValues(excludesText), Flags.ExcludedDir);
+        
+      //   const suppressText = core.getInput('suppress-files', Utils.OptionalInputWithTrim)
+      //   Utils.appendArgs(args, Utils.splitStringValues(suppressText), Flags.SuppressFile);
+
+      //   const rulesConfigsText = core.getInput('rules-configs', Utils.OptionalInputWithTrim)
+      //   Utils.appendArgs(args, Utils.splitStringValues(rulesConfigsText), Flags.RulesConfigFile);
+
+      //   const parallelText = core.getInput('parallel', Utils.OptionalInputWithTrim)
+      //   if (parallelText && parallelText !== '0') {
+      //     args.push(Flags.ParallelCount, parallelText)
+      //   }
+
+      //   const licenseFileText = core.getInput('licence-file', Utils.OptionalInputWithTrim);
+      //   args.push(Flags.LicenseFile);
+      //   if(licenseFileText) {
+      //     args.push(licenseFileText)
+      //   } else {
+      //     const tempLicenseFilePath = await this.backend.exportLicenseFromEnvVars();
+      //     args.push(tempLicenseFilePath)
+      //   }
+
+      //   return args;
+      // }
+    
       public async run() : Promise<string> {
-        const args = await this.createArgs();
+        const analysisTask = await this.generateAnalysisTask();
+        const args = this.createArgs(analysisTask);
+        
         const analyzerExecutable = await this.analyzerFilePath();
         const res = await exec.getExecOutput(`"${analyzerExecutable}"`, args)
         if(res.exitCode !== 0) {
