@@ -1,0 +1,61 @@
+name: 'PVS-Studio: Convert report'
+description: 'Convert PVS-Studio report to specified format'
+author: 'Your name or organization here'
+
+inputs:
+  output-format:
+    description:
+      'Render types for output. Available formats can be found in documentation.'
+    required: true
+  output-file:
+    description: 'Output file.'
+    required: true
+  groups-and-levels:
+    description: 'Specifies analyzer(s) and level(s) to be used for filtering, i.e. ''GA:1,2;64:1;OP:1,2,3;CS:1;MISRA:1,2''. See PlogConverter documentation for more information.'
+    required: false
+    default: ''
+  excluded-paths:
+    description:
+      'Excludes from the report all warnings issued in certain files (wildcards
+      supported). Several values must be separated by semicolon or new line,
+      e.g. ''C:\project\thirdparty;C:\project\libs'''
+    required: false
+    default: ''
+  included-paths:
+    description:
+      'Include in the report only warnings issued on specified files. Several values must be separated by semicolon or new line, e.g. ''C:\project\moduleA;C:\project\moduleB'''
+    required: false
+    default: ''
+  path-transformation-mode:
+    description: |
+      Trasformation mode. Supported values is: 
+        toAbsolute - transform to absolute path,
+        toRelative - transform to relative with source root (--srcRoot option)
+      Transformation does not take place if the parameter is empty.
+    required: false
+    default: ''
+  source-tree-root:
+    description: 'A path to the project root directory. Used to convert paths in reports. See ''the path-transformation-mode'' option for details.'
+    required: false
+    default: ''
+  excluded-codes:
+    description: 'Warning codes to disable. Several values must be separated by semicolon or new line, e.g. ''V111;V222'''
+    required: false
+    default: ''
+  keep-false-alarms:
+    description: 'Set this option to preserve warnings marked as False Alarms in the report'
+    required: false
+    default: 'false'
+  additional-args:
+    description:
+      'Additional args passed to converter. See PlogConverter documentation for more information.'
+    required: false
+    default: ''
+
+outputs:
+  report:
+    description: 'Path to ready-to-use report in a specified format'
+
+runs:
+  using: node20
+  main: dist/action-convert-report.js

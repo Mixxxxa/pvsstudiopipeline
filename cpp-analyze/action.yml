@@ -1,32 +1,17 @@
-name: 'PVS-Studio scan example'
-description: 'Easy way to configure PVS-Studio analyzer on GitHub'
+name: 'PVS-Studio: C++ analysis'
+description: 'Analyze your C++ code with PVS-Studio analyzer'
 author: 'Your name or organization here'
 
-# Add your action's branding here. This will appear on the GitHub Marketplace.
-branding:
-  icon: 'heart'
-  color: 'red'
-
 inputs:
-  project-file:
+  file-to-analyze:
     description: 'File to analyze (Compile Commands Database or trace-file)'
-    required: false
-    default: ''
-  trace-args:
-    description: '[For Linux and macOS only] Allows you to trace the build tool to collect all files to analyze and their compilation options'
-    required: false
-    default: ''
+    required: true
   analysis-mode:
     description:
       "The group of warnings that will be activated during analysis. Several
       values must be separated by ';', e.g. 'GA;OP;64'"
     required: false
     default: 'GA;OP'
-  output-format:
-    description:
-      'Render types for output. Avaliable formats can be found in documentation.'
-    required: false
-    default: ''
   output-file:
     description: 'Output file.'
     required: false
@@ -68,13 +53,10 @@ inputs:
     default: ''
 
 outputs:
-  report:
-    description: 'Path to ready-to-use report in a specified format'
-
   raw-report:
     description:
       'Path to raw analyzer report for further conversion and processing'
 
 runs:
   using: node20
-  main: dist/index.js
+  main: dist/action-cpp-analysis.js
