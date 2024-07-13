@@ -8,8 +8,12 @@ import * as exec from '@actions/exec'
 /**
 * Special class to easy extend an analyzer output
 */
-export class CppAnalyzerRunResult {
-    rawReport!: string
+// export class CppAnalyzerRunResult {
+//     rawReport!: string
+// };
+
+enum CppAnalyzerMode {
+    Analyze, Trace
 };
 
 /**
@@ -21,15 +25,18 @@ export class CppAnalyzerRunResult {
 class CppAnalysisTask {
     fileToAnalyze!: string;
     outputRawReportFilePath!: string;
-
     licenseFilePath!: string;
+    analysisMode!: string;
+    sourceTreeRoot!: string;
     excludedDirs!: Array<string>;
     rulesConfigFiles!: Array<string>;
     suppressFiles!: Array<string>;
     additionalArgs!: Array<string>;
     parallelCount?: number;
-    analysisMode?: string;
-    sourceTreeRoot?: string;
+
+    public getOutput() : string {
+        return this.outputRawReportFilePath;
+    }
 };
 
 class CppTraceTask {
@@ -37,40 +44,39 @@ class CppTraceTask {
     ignoreReturnCode!: boolean;
     outputFilepath!: string;
     additionalArgs!: Array<string>;
+
+    public getOutput() : string {
+        return this.outputFilepath;
+    }
 };
 
 export class CppAnalyzer extends AbstractAnalyzer {
 
-    public coreFilePath(): string {
-        throw new PVSErrors.Unimplemented();
+    public async analyzerFilePath(): Promise<string> {
+        return this.backend.getCppAnalyzerFilePath();
     }
 
-    public analyzerFilePath(): string {
-        throw new PVSErrors.Unimplemented();
+    public async coreFilePath(): Promise<string> {
+        const analyzerPath = await this.analyzerFilePath();
+        if(analyzerPath) {
+            const parts = path.parse(analyzerPath);
+            return path.join(parts.dir, 'x64', 'PVS-Studio.exe');
+        }
+        return '';
     }
 
-    public available(): boolean {
-        throw new PVSErrors.Unimplemented();
+    public async available(): Promise<boolean> {
+        return Boolean(await this.analyzerFilePath());
     }
 
     public async install(): Promise<void> {
-        throw new PVSErrors.Unimplemented();
-    }
-
-    protected generateRawLogFilePath(sourceFilePath: string): string {
-        const parts = path.parse(sourceFilePath)
-        return `${parts.dir}/${parts.name}-raw.log`
+        return this.backend.install('cpp');
     }
 
     protected async generateAnalysisTask(): Promise<CppAnalysisTask> {
         let task = new CppAnalysisTask();
         task.fileToAnalyze = core.getInput('file-to-analyze', Utils.RequiredInputWithTrim);
-        
-        const analysisModeText = core.getInput('analysis-mode', Utils.OptionalInputWithTrim);
-        if(analysisModeText) {
-            task.analysisMode = analysisModeText;
-        }
-
+        task.analysisMode = core.getInput('analysis-mode', Utils.OptionalInputWithTrim);
         task.sourceTreeRoot = core.getInput('source-tree-root', Utils.OptionalInputWithTrim);
         task.excludedDirs = Utils.splitStringValues(core.getInput('excluded-dirs',
             Utils.OptionalInputWithTrim));
@@ -82,7 +88,7 @@ export class CppAnalyzer extends AbstractAnalyzer {
             Utils.OptionalInputWithTrim));
 
         const parallelText = core.getInput('parallel', Utils.OptionalInputWithTrim)
-        if (parallelText && parallelText !== '0') {
+        if (parallelText !== '0') {
             const parallelValue = parseInt(parallelText, 10);
             if (isNaN(parallelValue)) {
                 throw new PVSErrors.PVSError("The 'parallel' input should be a number!")
@@ -90,21 +96,9 @@ export class CppAnalyzer extends AbstractAnalyzer {
             task.parallelCount = parallelValue;
         }
 
-        const outputFormatText = core.getInput('output-format', Utils.OptionalInputWithTrim);
-        const outputFileText = core.getInput('output-file', Utils.OptionalInputWithTrim);
-        if (!outputFileText) {
-            throw new PVSErrors.PVSError("The 'output-file' input should be a specified!");
-        }
-
-        task.outputReportFilePath = outputFileText;
-        // If the output format is set, we need to save the raw report separately 
-        if (outputFormatText) {
-            task.outputFormat = outputFormatText;
-            const parts = path.parse(outputFileText);
-            task.outputRawReportFilePath = `${parts.dir}/${parts.name}-raw.log`
-        } else {
-            task.outputRawReportFilePath = outputFileText;
-        }
+        const outputFileText = core.getInput('output-file', Utils.RequiredInputWithTrim);
+        const parts = path.parse(outputFileText);
+        task.outputRawReportFilePath = `${parts.dir}/${parts.name}-raw.log`
 
         const licenseFileText = core.getInput('licence-file', Utils.OptionalInputWithTrim);
         if (licenseFileText) {
@@ -126,17 +120,31 @@ export class CppAnalyzer extends AbstractAnalyzer {
         return task;
     }
 
-    protected createArgs(task: CppAnalyzerTask): Array<string> {
-        let args: Array<string> = [];
-        args.push('analyze');
-        if (!task.projectFilePath) {
-            throw new PVSErrors.PVSError("The project file (compile DB or trace-file) should be a specified!");
+    public async generateTask(mode: CppAnalyzerMode) : Promise<CppAnalysisTask | CppTraceTask> {
+        if(mode === CppAnalyzerMode.Analyze) {
+            return this.generateAnalysisTask();
+        } else if(mode === CppAnalyzerMode.Trace) {
+            return this.generateTraceTask();
         }
+        throw new PVSErrors.PVSError('Unknown mode');
+    }
 
-        args.push('-f', task.projectFilePath,
+    protected createArgs(task: CppAnalysisTask | CppTraceTask) : Array<string> {
+        if(task instanceof CppAnalysisTask) {
+            return this.createAnalysisArgs(task as CppAnalysisTask);
+        } else if (task instanceof CppTraceTask) {
+            return this.createTraceArgs(task as CppTraceTask);
+        }
+        throw new PVSErrors.PVSError('Unknown mode');
+    }
+
+    protected createAnalysisArgs(task: CppAnalysisTask): Array<string> {
+        let args: Array<string> = [
+            'analyze',
+            '-f', task.fileToAnalyze,
             '-o', task.outputRawReportFilePath,
             '-l', task.licenseFilePath
-        );
+        ];
 
         if (task.analysisMode) {
             args.push('-a', task.analysisMode);
@@ -146,34 +154,31 @@ export class CppAnalyzer extends AbstractAnalyzer {
             args.push('-j', task.parallelCount.toString());
         }
 
-        if (task.excludedDirs) {
-            for (let dir of task.excludedDirs) {
-                args.push('-e', dir);
-            }
+        if (task.sourceTreeRoot) {
+            args.push('-r', task.sourceTreeRoot);
         }
 
-        if (task.rulesConfigFiles) {
-            for (let file of task.rulesConfigFiles) {
-                args.push('-R', file);
-            }
-        }
-
-        if (task.suppressFiles) {
-            for (let file of task.suppressFiles) {
-                args.push('-s', file);
-            }
-        }
-
-        if (task.additionalArgs) {
-            for (let arg of task.additionalArgs) {
-                args.push(arg);
-            }
-        }
+        Utils.appendArgs(args, task.excludedDirs, '-e');
+        Utils.appendArgs(args, task.rulesConfigFiles, '-R');
+        Utils.appendArgs(args, task.suppressFiles, '-s');
+        Utils.appendArgs(args, task.additionalArgs);
         return args;
     }
 
-    public async run(): Promise<CppAnalyzerRunResult> {
-        const task = await this.generateAnalysisTask();
+    protected createTraceArgs(task: CppTraceTask): Array<string> {
+        let args: Array<string> = [
+            'trace', '-o', task.outputFilepath
+        ];
+        if(task.ignoreReturnCode){
+            args.push('-i');
+        }
+        Utils.appendArgs(args, task.additionalArgs);
+        args.push('--', task.traceCommand);
+        return args;
+    }
+
+    public async run(mode: CppAnalyzerMode): Promise<string> {
+        const task = await this.generateTask(mode);
         const args = this.createArgs(task);
 
         const analyzerExecutable = await this.analyzerFilePath();
@@ -184,8 +189,6 @@ export class CppAnalyzer extends AbstractAnalyzer {
             )
         }
 
-        const result = new CppAnalyzerRunResult();
-        result.rawReport = task.outputRawReportFilePath;
-        return result;
+        return task.getOutput();
     }
 };

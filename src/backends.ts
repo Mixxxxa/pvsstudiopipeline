@@ -24,10 +24,6 @@ export abstract class AbstractPlatformBackend {
         return tmpFilePath;
     }
 
-    // public abstract installPath(): string;
-
-    // public abstract plogConverterFilePath(): string;
-
     public async exportLicenseFromEnvVars(): Promise<string> {
         const name = process.env.PVS_STUDIO_LICENSE_NAME
         const key = process.env.PVS_STUDIO_LICENSE_KEY
@@ -38,6 +34,14 @@ export abstract class AbstractPlatformBackend {
         }
         return tempLicenseFilePath;
     }
+
+    public abstract getCppAnalyzerFilePath() : Promise<string>;
+
+    public abstract getCppAnalyzerCoreFilePath() : Promise<string>;
+
+    public abstract getPlogConverterFilePath() : Promise<string>;
+
+    public abstract install(analyzerLanguage: string): Promise<void>;
 };
 
 export class WindowsBackend extends AbstractPlatformBackend {
@@ -50,45 +54,60 @@ export class WindowsBackend extends AbstractPlatformBackend {
         }
         core.debug('PVS-Studio successfuly installed');
     }
+
+    public async getCppAnalyzerFilePath() : Promise<string> {
+        return '';
+    }
+
+    public async getCppAnalyzerCoreFilePath() : Promise<string> {
+        return '';
+    }
+
+    public async getPlogConverterFilePath() : Promise<string> {
+        return ''
+    }
 };
 
 export class LinuxBackend extends AbstractPlatformBackend {
 
     public async install(analyzer: string): Promise<void> {
         core.info(`Installing PVS-Studio (${analyzer}) on Linux via direct download`)
-        let downloadLink = ''
-        switch (analyzer) {
-            case 'cpp':
-                downloadLink = 'https://cdn.pvs-studio.com/pvs-studio-latest.deb';
-                break;
-            case 'csharp':
-                // There are no *latest links
-                throw new PVSErrors.Unimplemented();
-                break;
-            case 'java':
-                downloadLink = 'https://cdn.pvs-studio.com/pvs-studio-java.zip';
-                break;
-            default:
-                throw new PVSErrors.PVSError(`Tried to install unknown analyzer '${analyzer}'`)
+        if(analyzer !== 'cpp') {
+            throw new PVSErrors.Unimplemented();
         }
+        
+        let downloadLink = 'https://cdn.pvs-studio.com/pvs-studio-latest.deb';
 
         const distFilePath: string = await tc.downloadTool(downloadLink);
-        if (analyzer in ['cpp', 'csharp']) {
-            const newDistFilePath = `${distFilePath}.deb`
-            await io.mv(distFilePath, newDistFilePath)
-            await exec.exec('sudo', [
-                'apt-get',
-                'install',
-                `${core.toPlatformPath(newDistFilePath)}`
-            ])
-        } else if (analyzer === 'java') {
-            throw new PVSErrors.Unimplemented();
+        const newDistFilePath = `${distFilePath}.deb`
+        await io.mv(distFilePath, newDistFilePath)
+        const res = await exec.getExecOutput('sudo', [
+            'apt-get',
+            'install',
+            `${core.toPlatformPath(newDistFilePath)}`
+        ])
+        if(res.exitCode !== 0) {
+            throw new Error(
+                `Unable to install ${analyzer}. Installer exit code is: ${res.exitCode}. Details: ${res}`
+            )
         }
         core.debug('PVS-Studio successfuly installed');
     }
+
+    public async getCppAnalyzerFilePath() : Promise<string> {
+        return '';
+    }
+
+    public async getCppAnalyzerCoreFilePath() : Promise<string> {
+        return '';
+    }
+
+    public async getPlogConverterFilePath() : Promise<string> {
+        return ''
+    }
 };
 
-export class MacOSBackend extends AbstractPlatformBackend {
+export class MacOSBackend extends LinuxBackend {
 
     public async install(analyzer: string): Promise<void> {
         core.info(`Installing PVS-Studio (${analyzer}) on macOS via brew`)

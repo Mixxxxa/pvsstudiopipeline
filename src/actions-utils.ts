@@ -11,16 +11,14 @@ export function splitStringValues(text: string): Array<string> {
     return filteredParts;
 }
 
-
-
-// export function appendArgs(container: Array<string>, values: Array<string>, flag?: string): void {
-//     for (let value of values) {
-//         if (flag) {
-//             container.push(flag)
-//         }
-//         container.push(value)
-//     }
-// }
+export function appendArgs(container: Array<string>, values: Array<string>, flag?: string): void {
+    for (let value of values) {
+        if (flag) {
+            container.push(flag)
+        }
+        container.push(value)
+    }
+}
 
 export const OptionalInputWithTrim: core.InputOptions = {
     required: false,
@@ -32,7 +30,10 @@ export const RequiredInputWithTrim: core.InputOptions = {
     trimWhitespace: true
 }
 
-export function getInput(name: string, optional: boolean) : string {
-    const text = core.getInput(name, optional ? OptionalInputWithTrim 
-                                              : RequiredInputWithTrim);
-}
+// export function getInput(name: string, optional: boolean) : string {
+//     const text = core.getInput(name, optional ? OptionalInputWithTrim 
+//                                               : RequiredInputWithTrim);
+//     if(!optional && !text) {
+//         throw 
+//     }
+// }
