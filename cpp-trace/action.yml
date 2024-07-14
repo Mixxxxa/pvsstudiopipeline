@@ -30,4 +30,4 @@ outputs:
 
 runs:
   using: node20
-  main: dist/action-cpp-trace.js
+  main: '../dist/action-cpp-trace.js'

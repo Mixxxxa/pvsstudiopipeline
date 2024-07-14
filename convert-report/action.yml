@@ -69,4 +69,4 @@ outputs:
 
 runs:
   using: node20
-  main: dist/action-convert-report.js
+  main: '../dist/action-convert-report.js'
