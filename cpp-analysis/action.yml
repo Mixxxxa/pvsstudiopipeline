@@ -59,4 +59,4 @@ outputs:
 
 runs:
   using: node20
-  main: '../dist/action-cpp-analysis.js'
+  main: '../dist/action-cpp-analysis/index.js'

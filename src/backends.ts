@@ -179,6 +179,7 @@ export class LinuxBackend extends AbstractPlatformBackend {
   protected async findTool(tool: string): Promise<string | undefined> {
     const basicSearch = await io.which(tool)
     if (basicSearch) {
+      console.log('From basic search')
       return basicSearch
     }
 
@@ -198,6 +199,7 @@ export class LinuxBackend extends AbstractPlatformBackend {
     for (const pathEntry of pathsToSearch) {
       const utilFilePath = path.join(pathEntry, tool)
       if (await Utils.checkPathExist(utilFilePath)) {
+        console.log('From manual search')
         return utilFilePath
       }
     }
@@ -240,7 +242,7 @@ export function getBackend(): AbstractPlatformBackend {
     return new WindowsBackend()
   } else if (Utils.isMacOS()) {
     core.debug('Detected macOS')
-    throw new PVSErrors.Unimplemented()
+    return new MacOSBackend();
   } else if (Utils.isLinux()) {
     core.debug('Detected Linux')
     return new LinuxBackend()
