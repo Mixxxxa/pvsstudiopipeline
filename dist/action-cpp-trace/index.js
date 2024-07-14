@@ -10352,6 +10352,7 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.RequiredInputWithTrim = exports.OptionalInputWithTrim = void 0;
 exports.splitStringValues = splitStringValues;
 exports.appendArgs = appendArgs;
+exports.isArrayOfStrings = isArrayOfStrings;
 exports.is64Bit = is64Bit;
 exports.isWindows = isWindows;
 exports.isLinux = isLinux;
@@ -10374,6 +10375,9 @@ function appendArgs(container, values, flag) {
         }
         container.push(value);
     }
+}
+function isArrayOfStrings(data) {
+    return Array.isArray(data) && data.every((value) => typeof value === 'string');
 }
 function is64Bit() {
     return ['x64', 'arm64'].includes(process.arch);
@@ -10752,7 +10756,7 @@ class CppAnalysisTask {
     }
 }
 class CppTraceTask {
-    traceCommand;
+    traceArgs;
     ignoreReturnCode;
     outputFilepath;
     additionalArgs;
@@ -10804,7 +10808,21 @@ class CppAnalyzer extends analyzer_1.AbstractAnalyzer {
     }
     generateTraceTask() {
         let task = new CppTraceTask();
-        task.traceCommand = core.getInput('trace-args', Utils.RequiredInputWithTrim);
+        const traceArgText = core.getInput('trace-args', Utils.RequiredInputWithTrim);
+        try {
+            const traceArgs = JSON.parse(traceArgText);
+            if (!Utils.isArrayOfStrings(traceArgs) || traceArgs.length === 0) {
+                throw new SyntaxError();
+            }
+            task.traceArgs = traceArgs;
+        }
+        catch (e) {
+            if (e instanceof SyntaxError) {
+                throw new PVSErrors.PVSError("Unable to parse the 'trace-args' input. Non empty JSON array of string was expected");
+            }
+            // Rethrow if not a syntax error
+            throw e;
+        }
         task.outputFilepath = core.getInput('output-file', Utils.RequiredInputWithTrim);
         task.ignoreReturnCode = core.getBooleanInput('ignore-return-code', Utils.OptionalInputWithTrim);
         task.additionalArgs = Utils.splitStringValues(core.getInput('additional-args', Utils.OptionalInputWithTrim));
@@ -10859,14 +10877,14 @@ class CppAnalyzer extends analyzer_1.AbstractAnalyzer {
             args.push('-i');
         }
         Utils.appendArgs(args, task.additionalArgs);
-        args.push('--', task.traceCommand);
-        return args;
+        args.push('--');
+        return args.concat(task.traceArgs);
     }
     async run(mode) {
         const task = await this.generateTask(mode);
-        core.debug(`Task: ${task}`);
+        core.debug(`Task: ${JSON.stringify(task)}`);
         const args = this.createArgs(task);
-        core.debug(`Args: ${args}`);
+        core.debug(`Args: ${JSON.stringify(args)}`);
         const analyzerExecutable = await this.analyzerFilePath();
         const res = await exec.getExecOutput(`"${analyzerExecutable}"`, args);
         if (res.exitCode !== 0) {

@@ -5,8 +5,8 @@ author: 'Your name or organization here'
 inputs:
   trace-args:
     description:
-      '[For Linux and macOS only] Allows you to trace the build tool to collect
-      all files to analyze and their compilation options'
+      '[For Linux only] Allows you to trace the build tool to collect
+      all files to analyze and their compilation options. Pass args as JSON array'
     required: true
   output-file:
     description:

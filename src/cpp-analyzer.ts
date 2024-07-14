@@ -41,7 +41,7 @@ class CppAnalysisTask {
 }
 
 class CppTraceTask {
-  traceCommand!: string
+  traceArgs!: Array<string>
   ignoreReturnCode!: boolean
   outputFilepath!: string
   additionalArgs!: Array<string>
@@ -126,7 +126,20 @@ export class CppAnalyzer extends AbstractAnalyzer {
 
   protected generateTraceTask(): CppTraceTask {
     let task = new CppTraceTask()
-    task.traceCommand = core.getInput('trace-args', Utils.RequiredInputWithTrim)
+    const traceArgText = core.getInput('trace-args', Utils.RequiredInputWithTrim)
+    try {
+      const traceArgs = JSON.parse(traceArgText);
+      if(!Utils.isArrayOfStrings(traceArgs) || traceArgs.length === 0) {
+        throw new SyntaxError()
+      }
+      task.traceArgs = traceArgs;
+    } catch(e) {
+      if(e instanceof SyntaxError) {
+        throw new PVSErrors.PVSError("Unable to parse the 'trace-args' input. Non empty JSON array of string was expected")
+      }
+      // Rethrow if not a syntax error
+      throw e;
+    }
     task.outputFilepath = core.getInput(
       'output-file',
       Utils.RequiredInputWithTrim
@@ -197,15 +210,15 @@ export class CppAnalyzer extends AbstractAnalyzer {
       args.push('-i')
     }
     Utils.appendArgs(args, task.additionalArgs)
-    args.push('--', task.traceCommand)
-    return args
+    args.push('--');
+    return args.concat(task.traceArgs);
   }
 
   public async run(mode: CppAnalyzerMode): Promise<string> {
     const task = await this.generateTask(mode)
-    core.debug(`Task: ${task}`)
+    core.debug(`Task: ${JSON.stringify(task)}`)
     const args = this.createArgs(task)
-    core.debug(`Args: ${args}`)
+    core.debug(`Args: ${JSON.stringify(args)}`)
 
     const analyzerExecutable = await this.analyzerFilePath()
     const res = await exec.getExecOutput(`"${analyzerExecutable}"`, args)

@@ -25,6 +25,10 @@ export function appendArgs(
   }
 }
 
+export function isArrayOfStrings(data: any[]) : boolean {
+  return Array.isArray(data) && data.every((value) => typeof value === 'string');
+}
+
 export function is64Bit(): boolean {
   return ['x64', 'arm64'].includes(process.arch)
 }
