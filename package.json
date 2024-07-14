@@ -23,13 +23,16 @@
   },
   "scripts": {
     "build": "tsc --build",
+    "package:cpp-analysis": "npx ncc build src/action-cpp-analysis.ts -o dist/action-cpp-analysis --source-map --license licenses.txt",
+    "package:cpp-trace": "npx ncc build src/action-cpp-trace.ts -o dist/action-cpp-trace --source-map --license licenses.txt",
+    "package:convert-report": "npx ncc build src/action-convert-report.ts -o dist/action-convert-report --source-map --license licenses.txt",
+    "package": "npm run package:cpp-analysis && npm run package:cpp-trace && npm run package:convert-report",
     "bundle": "npm run format:write && npm run package",
     "ci-test": "npx jest",
     "coverage": "npx make-coverage-badge --output-path ./badges/coverage.svg",
     "format:write": "npx prettier --write .",
     "format:check": "npx prettier --check .",
     "lint": "npx eslint . -c ./.github/linters/.eslintrc.yml",
-    "package": "npx ncc build src/index.ts -o dist --source-map --license licenses.txt",
     "package:watch": "npm run package -- --watch",
     "test": "npx jest",
     "all": "npm run format:write && npm run lint && npm run test && npm run coverage && npm run package"
