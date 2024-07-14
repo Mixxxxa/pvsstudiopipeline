@@ -11,7 +11,10 @@ inputs:
     description: 'Output file.'
     required: true
   groups-and-levels:
-    description: 'Specifies analyzer(s) and level(s) to be used for filtering, i.e. ''GA:1,2;64:1;OP:1,2,3;CS:1;MISRA:1,2''. See PlogConverter documentation for more information.'
+    description:
+      "Specifies analyzer(s) and level(s) to be used for filtering, i.e.
+      'GA:1,2;64:1;OP:1,2,3;CS:1;MISRA:1,2'. See PlogConverter documentation for
+      more information."
     required: false
     default: ''
   excluded-paths:
@@ -23,7 +26,9 @@ inputs:
     default: ''
   included-paths:
     description:
-      'Include in the report only warnings issued on specified files. Several values must be separated by semicolon or new line, e.g. ''C:\project\moduleA;C:\project\moduleB'''
+      'Include in the report only warnings issued on specified files. Several
+      values must be separated by semicolon or new line, e.g.
+      ''C:\project\moduleA;C:\project\moduleB'''
     required: false
     default: ''
   path-transformation-mode:
@@ -35,20 +40,26 @@ inputs:
     required: false
     default: ''
   source-tree-root:
-    description: 'A path to the project root directory. Used to convert paths in reports. See ''the path-transformation-mode'' option for details.'
+    description:
+      "A path to the project root directory. Used to convert paths in reports.
+      See 'the path-transformation-mode' option for details."
     required: false
     default: ''
   excluded-codes:
-    description: 'Warning codes to disable. Several values must be separated by semicolon or new line, e.g. ''V111;V222'''
+    description:
+      "Warning codes to disable. Several values must be separated by semicolon
+      or new line, e.g. 'V111;V222'"
     required: false
     default: ''
   keep-false-alarms:
-    description: 'Set this option to preserve warnings marked as False Alarms in the report'
+    description:
+      'Set this option to preserve warnings marked as False Alarms in the report'
     required: false
     default: 'false'
   additional-args:
     description:
-      'Additional args passed to converter. See PlogConverter documentation for more information.'
+      'Additional args passed to converter. See PlogConverter documentation for
+      more information.'
     required: false
     default: ''
 

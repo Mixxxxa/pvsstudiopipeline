@@ -12,7 +12,7 @@ import * as exec from '@actions/exec'
 //     rawReport!: string
 // };
 
-enum CppAnalyzerMode {
+export enum CppAnalyzerMode {
   Analyze,
   Trace
 }
@@ -52,11 +52,11 @@ class CppTraceTask {
 }
 
 export class CppAnalyzer extends AbstractAnalyzer {
-  public async analyzerFilePath(): Promise<string> {
+  public async analyzerFilePath(): Promise<string | undefined> {
     return this.backend.getCppAnalyzerFilePath()
   }
 
-  public async coreFilePath(): Promise<string> {
+  public async coreFilePath(): Promise<string | undefined> {
     return this.backend.getCppAnalyzerCoreFilePath()
   }
 

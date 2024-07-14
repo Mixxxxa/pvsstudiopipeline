@@ -6,6 +6,4 @@ export abstract class AbstractAnalyzer {
   constructor(backend: backend.AbstractPlatformBackend) {
     this.backend = backend
   }
-
-  //public abstract run(): Promise<string>;
 }

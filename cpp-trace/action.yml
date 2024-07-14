@@ -4,7 +4,9 @@ author: 'Your name or organization here'
 
 inputs:
   trace-args:
-    description: '[For Linux and macOS only] Allows you to trace the build tool to collect all files to analyze and their compilation options'
+    description:
+      '[For Linux and macOS only] Allows you to trace the build tool to collect
+      all files to analyze and their compilation options'
     required: true
   output-file:
     description:
@@ -12,7 +14,7 @@ inputs:
     required: false
     default: '${{ github.workspace }}/pvs-trace'
   ignore-return-code:
-    description: "Ignore build system return code"
+    description: 'Ignore build system return code'
     required: false
     default: 'false'
   additional-args:

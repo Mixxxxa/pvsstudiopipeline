@@ -4,14 +4,13 @@ import * as cpp from './cpp-analyzer'
 
 export async function run(): Promise<void> {
   try {
-    const backend = getBackend()
-    const analyzer = new cpp.CppAnalyzer(backend)
-    if (!analyzer.available()) {
-      analyzer.install()
+    const analyzer = new cpp.CppAnalyzer(getBackend())
+    if (!(await analyzer.available())) {
+      await analyzer.install()
     }
 
-    const analysisResult = await analyzer.run()
-    core.setOutput('raw-report', analysisResult.rawReport)
+    const analysisResult = await analyzer.run(cpp.CppAnalyzerMode.Analyze)
+    core.setOutput('raw-report', analysisResult)
   } catch (error: any) {
     core.setFailed(error.message)
   }
