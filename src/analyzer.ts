@@ -1,11 +1,11 @@
 import * as backend from './backends'
 
 export abstract class AbstractAnalyzer {
-    protected backend: backend.AbstractPlatformBackend;
+  protected backend: backend.AbstractPlatformBackend
 
-    constructor(backend: backend.AbstractPlatformBackend) {
-        this.backend = backend;
-    }
+  constructor(backend: backend.AbstractPlatformBackend) {
+    this.backend = backend
+  }
 
-    //public abstract run(): Promise<string>;
-};
+  //public abstract run(): Promise<string>;
+}
