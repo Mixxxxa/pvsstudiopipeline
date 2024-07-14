@@ -203,7 +203,9 @@ export class CppAnalyzer extends AbstractAnalyzer {
 
   public async run(mode: CppAnalyzerMode): Promise<string> {
     const task = await this.generateTask(mode)
+    core.debug(`Task: ${task}`)
     const args = this.createArgs(task)
+    core.debug(`Args: ${args}`)
 
     const analyzerExecutable = await this.analyzerFilePath()
     const res = await exec.getExecOutput(`"${analyzerExecutable}"`, args)

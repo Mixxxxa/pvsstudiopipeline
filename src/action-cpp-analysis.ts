@@ -6,6 +6,7 @@ export async function run(): Promise<void> {
   try {
     const analyzer = new cpp.CppAnalyzer(getBackend())
     if (!(await analyzer.available())) {
+      core.debug('Analyzer not found. Installing...')
       await analyzer.install()
     }
 
