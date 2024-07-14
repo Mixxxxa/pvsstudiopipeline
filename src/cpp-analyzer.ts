@@ -135,7 +135,7 @@ export class CppAnalyzer extends AbstractAnalyzer {
       task.traceArgs = traceArgs;
     } catch(e) {
       if(e instanceof SyntaxError) {
-        throw new PVSErrors.PVSError("Unable to parse the 'trace-args' input. Non empty JSON array of string was expected")
+        throw new PVSErrors.PVSError(`Unable to parse the 'trace-args' input (${traceArgText}). Non empty JSON array of string was expected.`)
       }
       // Rethrow if not a syntax error
       throw e;
