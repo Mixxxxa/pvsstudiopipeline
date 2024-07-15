@@ -3,6 +3,10 @@ description: 'Convert PVS-Studio report to specified format'
 author: 'Your name or organization here'
 
 inputs:
+  input-files:
+    description:
+      'Log or report to convert. Several values must be separated by semicolon or new line'
+    required: true
   output-format:
     description:
       'Render types for output. Available formats can be found in documentation.'

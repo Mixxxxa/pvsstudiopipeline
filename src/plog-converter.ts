@@ -4,6 +4,7 @@ import * as core from '@actions/core'
 import * as PVSErrors from './errors'
 
 class PlogConverterTask {
+    inputFiles!: Array<string>
     outputFormat!: string;
     outputFile!: string;
     groupsAndLevels!: string
@@ -31,6 +32,12 @@ export class PlogConverter extends AbstractAnalyzer {
 
     protected async generateTask(): Promise<PlogConverterTask> {
         let task = new PlogConverterTask();
+        task.inputFiles = Utils.splitStringValues(
+            core.getInput('input-files', Utils.RequiredInputWithTrim)
+        )
+        if(task.inputFiles.length === 0) {
+            throw new PVSErrors.PVSError("Atleast one report should be specified with the 'input-files' input")
+        }
         task.outputFile = core.getInput(
             'output-file',
             Utils.RequiredInputWithTrim
@@ -87,6 +94,7 @@ export class PlogConverter extends AbstractAnalyzer {
         if (task.keepFalseAlarms) {
             args.push('-f')
         }
+        Utils.appendArgs(args, task.inputFiles)
         return args;
     }
 

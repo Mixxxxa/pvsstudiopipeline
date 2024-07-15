@@ -10744,6 +10744,7 @@ const Utils = __importStar(__nccwpck_require__(2274));
 const core = __importStar(__nccwpck_require__(2186));
 const PVSErrors = __importStar(__nccwpck_require__(6976));
 class PlogConverterTask {
+    inputFiles;
     outputFormat;
     outputFile;
     groupsAndLevels;
@@ -10767,6 +10768,10 @@ class PlogConverter extends analyzer_1.AbstractAnalyzer {
     }
     async generateTask() {
         let task = new PlogConverterTask();
+        task.inputFiles = Utils.splitStringValues(core.getInput('input-files', Utils.RequiredInputWithTrim));
+        if (task.inputFiles.length === 0) {
+            throw new PVSErrors.PVSError("Atleast one report should be specified with the 'input-files' input");
+        }
         task.outputFile = core.getInput('output-file', Utils.RequiredInputWithTrim);
         task.outputFormat = core.getInput('output-format', Utils.RequiredInputWithTrim);
         task.groupsAndLevels = core.getInput('analysis-mode', Utils.OptionalInputWithTrim);
@@ -10805,6 +10810,7 @@ class PlogConverter extends analyzer_1.AbstractAnalyzer {
         if (task.keepFalseAlarms) {
             args.push('-f');
         }
+        Utils.appendArgs(args, task.inputFiles);
         return args;
     }
     async run() {
