@@ -10322,44 +10322,15 @@ run();
 /***/ }),
 
 /***/ 2274:
-/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
+/***/ ((__unused_webpack_module, exports) => {
 
 "use strict";
 
-var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    var desc = Object.getOwnPropertyDescriptor(m, k);
-    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
-      desc = { enumerable: true, get: function() { return m[k]; } };
-    }
-    Object.defineProperty(o, k2, desc);
-}) : (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    o[k2] = m[k];
-}));
-var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
-    Object.defineProperty(o, "default", { enumerable: true, value: v });
-}) : function(o, v) {
-    o["default"] = v;
-});
-var __importStar = (this && this.__importStar) || function (mod) {
-    if (mod && mod.__esModule) return mod;
-    var result = {};
-    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
-    __setModuleDefault(result, mod);
-    return result;
-};
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.RequiredInputWithTrim = exports.OptionalInputWithTrim = void 0;
 exports.splitStringValues = splitStringValues;
 exports.appendArgs = appendArgs;
 exports.isArrayOfStrings = isArrayOfStrings;
-exports.is64Bit = is64Bit;
-exports.isWindows = isWindows;
-exports.isLinux = isLinux;
-exports.isMacOS = isMacOS;
-exports.checkPathExist = checkPathExist;
-const fsp = __importStar(__nccwpck_require__(3977));
 function splitStringValues(text) {
     if (!text || text.length === 0) {
         return [];
@@ -10380,30 +10351,6 @@ function appendArgs(container, values, flag) {
 function isArrayOfStrings(data) {
     return Array.isArray(data) && data.every((value) => typeof value === 'string');
 }
-function is64Bit() {
-    return ['x64', 'arm64'].includes(process.arch);
-}
-function isWindows() {
-    return process.platform === 'win32';
-}
-function isLinux() {
-    return process.platform === 'linux';
-}
-function isMacOS() {
-    return process.platform === 'darwin';
-}
-async function checkPathExist(pathToCheck) {
-    if (!pathToCheck) {
-        return false;
-    }
-    try {
-        await fsp.access(pathToCheck, fsp.constants.R_OK);
-    }
-    catch {
-        return false;
-    }
-    return true;
-}
 exports.OptionalInputWithTrim = {
     required: false,
     trimWhitespace: true
@@ -10412,13 +10359,6 @@ exports.RequiredInputWithTrim = {
     required: false,
     trimWhitespace: true
 };
-// export function getInput(name: string, optional: boolean) : string {
-//     const text = core.getInput(name, optional ? OptionalInputWithTrim
-//                                               : RequiredInputWithTrim);
-//     if(!optional && !text) {
-//         throw
-//     }
-// }
 
 
 /***/ }),
@@ -10481,7 +10421,6 @@ const path = __importStar(__nccwpck_require__(9411));
 const os = __importStar(__nccwpck_require__(612));
 const regedit = __importStar(__nccwpck_require__(2591));
 const PVSErrors = __importStar(__nccwpck_require__(6976));
-const Utils = __importStar(__nccwpck_require__(2274));
 class AbstractPlatformBackend {
     async createFile(filepath, content) {
         return fsp.writeFile(filepath, content);
@@ -10505,17 +10444,35 @@ class AbstractPlatformBackend {
         }
         return tempLicenseFilePath;
     }
+    is64Bit() {
+        return ['x64', 'arm64'].includes(process.arch);
+    }
+    async checkPathExist(pathToCheck) {
+        if (!pathToCheck) {
+            return false;
+        }
+        try {
+            await fsp.access(pathToCheck, fsp.constants.R_OK);
+        }
+        catch {
+            return false;
+        }
+        return true;
+    }
+    async runProgram(program, args) {
+        return await exec.getExecOutput(`"${program}"`, args);
+    }
 }
 exports.AbstractPlatformBackend = AbstractPlatformBackend;
 class WindowsBackend extends AbstractPlatformBackend {
     async getInstallPath() {
         const getRegistryPath = () => {
-            return Utils.is64Bit()
+            return this.is64Bit()
                 ? 'HKLM\\SOFTWARE\\Wow6432Node\\ProgramVerificationSystems\\PVS-Studio'
                 : 'HKLM\\SOFTWARE\\ProgramVerificationSystems\\PVS-Studio';
         };
         const getRegistryUninstallPath = () => {
-            return Utils.is64Bit()
+            return this.is64Bit()
                 ? 'HKLM\\SOFTWARE\\WOW6432Node\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\PVS-Studio_is1'
                 : 'HKLM\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\PVS-Studio_is1';
         };
@@ -10525,12 +10482,12 @@ class WindowsBackend extends AbstractPlatformBackend {
         };
         try {
             const pvsRegEntry = await getRegistryValue(getRegistryPath(), 'InstallDir');
-            if (await Utils.checkPathExist(pvsRegEntry)) {
+            if (await this.checkPathExist(pvsRegEntry)) {
                 console.log('From main registry entry');
                 return pvsRegEntry;
             }
             const pvsRegUninstallEntry = await getRegistryValue(getRegistryUninstallPath(), 'InstallLocation');
-            if (await Utils.checkPathExist(pvsRegUninstallEntry)) {
+            if (await this.checkPathExist(pvsRegUninstallEntry)) {
                 console.log('From uninstall registry entry');
                 return pvsRegUninstallEntry;
             }
@@ -10546,13 +10503,13 @@ class WindowsBackend extends AbstractPlatformBackend {
         const programFilesPath = process.env['ProgramFiles(x86)'];
         if (programFilesPath) {
             const pathWithEnv = path.join(programFilesPath, 'PVS-Studio');
-            if (await Utils.checkPathExist(pathWithEnv)) {
+            if (await this.checkPathExist(pathWithEnv)) {
                 console.log('From env');
                 return pathWithEnv;
             }
         }
         const fallbackPath = 'C:\\Program Files (x86)\\PVS-Studio';
-        if (await Utils.checkPathExist(fallbackPath)) {
+        if (await this.checkPathExist(fallbackPath)) {
             console.log('Fallback');
             return fallbackPath;
         }
@@ -10587,6 +10544,15 @@ class WindowsBackend extends AbstractPlatformBackend {
         }
         return undefined;
     }
+    isWindows() {
+        return true;
+    }
+    isLinux() {
+        return false;
+    }
+    isMacOS() {
+        return false;
+    }
 }
 exports.WindowsBackend = WindowsBackend;
 class LinuxBackend extends AbstractPlatformBackend {
@@ -10617,10 +10583,10 @@ class LinuxBackend extends AbstractPlatformBackend {
         }
         // So, lets manually search in PATH
         let forcedPaths = [];
-        if (Utils.isLinux()) {
+        if (this.isLinux()) {
             forcedPaths.push('/usr/bin', '/usr/sbin');
         }
-        else if (Utils.isMacOS()) {
+        else if (this.isMacOS()) {
             forcedPaths.push('/usr/local/bin', '/usr/local/sbin');
         }
         const pathsFromEnv = process.env['PATH']?.split(':');
@@ -10630,7 +10596,7 @@ class LinuxBackend extends AbstractPlatformBackend {
         ];
         for (const pathEntry of pathsToSearch) {
             const utilFilePath = path.join(pathEntry, tool);
-            if (await Utils.checkPathExist(utilFilePath)) {
+            if (await this.checkPathExist(utilFilePath)) {
                 console.log('From manual search');
                 return utilFilePath;
             }
@@ -10645,6 +10611,15 @@ class LinuxBackend extends AbstractPlatformBackend {
     }
     async getPlogConverterFilePath() {
         return this.findTool('plog-converter');
+    }
+    isWindows() {
+        return false;
+    }
+    isLinux() {
+        return true;
+    }
+    isMacOS() {
+        return false;
     }
 }
 exports.LinuxBackend = LinuxBackend;
@@ -10664,18 +10639,28 @@ class MacOSBackend extends LinuxBackend {
         }
         core.debug('PVS-Studio successfuly installed');
     }
+    isWindows() {
+        return false;
+    }
+    isLinux() {
+        return false;
+    }
+    isMacOS() {
+        return true;
+    }
 }
 exports.MacOSBackend = MacOSBackend;
 function getBackend() {
-    if (Utils.isWindows()) {
+    const platform = process.platform;
+    if (platform === 'win32') {
         core.debug('Detected Windows');
         return new WindowsBackend();
     }
-    else if (Utils.isMacOS()) {
+    else if (platform === 'darwin') {
         core.debug('Detected macOS');
         return new MacOSBackend();
     }
-    else if (Utils.isLinux()) {
+    else if (platform === 'linux') {
         core.debug('Detected Linux');
         return new LinuxBackend();
     }
@@ -10723,7 +10708,6 @@ const analyzer_1 = __nccwpck_require__(5944);
 const PVSErrors = __importStar(__nccwpck_require__(6976));
 const Utils = __importStar(__nccwpck_require__(2274));
 const core = __importStar(__nccwpck_require__(2186));
-const exec = __importStar(__nccwpck_require__(1514));
 /**
  * Special class to easy extend an analyzer output
  */
@@ -10766,14 +10750,8 @@ class CppTraceTask {
     }
 }
 class CppAnalyzer extends analyzer_1.AbstractAnalyzer {
-    async analyzerFilePath() {
-        return this.backend.getCppAnalyzerFilePath();
-    }
-    async coreFilePath() {
-        return this.backend.getCppAnalyzerCoreFilePath();
-    }
     async available() {
-        return Boolean(await this.analyzerFilePath());
+        return Boolean(await this.backend.getCppAnalyzerFilePath());
     }
     async install() {
         return this.backend.install('cpp');
@@ -10886,12 +10864,15 @@ class CppAnalyzer extends analyzer_1.AbstractAnalyzer {
         core.debug(`Task: ${JSON.stringify(task)}`);
         const args = this.createArgs(task);
         core.debug(`Args: ${JSON.stringify(args)}`);
-        const analyzerExecutable = await this.analyzerFilePath();
-        const res = await exec.getExecOutput(`"${analyzerExecutable}"`, args);
-        if (res.exitCode !== 0) {
-            throw new Error(`Analyzer exited with code ${res.exitCode}. Details: ${res}`);
+        const executable = await this.backend.getCppAnalyzerFilePath();
+        if (executable) {
+            const res = await this.backend.runProgram(executable, args);
+            if (res.exitCode === 0) {
+                return task.getOutput();
+            }
+            throw new Error(`The PVS-Studio C++ analyzer exited with code ${res.exitCode}. Details: ${res}`);
         }
-        return task.getOutput();
+        throw new PVSErrors.AnalyzerComponentNotFound('C++ analyzer');
     }
 }
 exports.CppAnalyzer = CppAnalyzer;
@@ -10905,7 +10886,7 @@ exports.CppAnalyzer = CppAnalyzer;
 "use strict";
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.UnsuppotedPlatform = exports.AnalyzerNotFound = exports.Unimplemented = exports.PVSError = void 0;
+exports.UnsuppotedPlatform = exports.AnalyzerComponentNotFound = exports.Unimplemented = exports.PVSError = void 0;
 class PVSError extends Error {
     constructor(message) {
         super(message);
@@ -10920,13 +10901,13 @@ class Unimplemented extends PVSError {
     }
 }
 exports.Unimplemented = Unimplemented;
-class AnalyzerNotFound extends PVSError {
-    constructor(message) {
-        super(message);
-        this.name = 'AnalyzerNotFound';
+class AnalyzerComponentNotFound extends PVSError {
+    constructor(component) {
+        super(`Unable to find PVS-Studio component: ${component}`);
+        this.name = 'AnalyzerComponentNotFound';
     }
 }
-exports.AnalyzerNotFound = AnalyzerNotFound;
+exports.AnalyzerComponentNotFound = AnalyzerComponentNotFound;
 class UnsuppotedPlatform extends PVSError {
     constructor() {
         super('Unsupported platfrom');

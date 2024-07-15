@@ -39,6 +39,23 @@ export abstract class AbstractPlatformBackend {
     return tempLicenseFilePath
   }
 
+  public is64Bit(): boolean {
+    return ['x64', 'arm64'].includes(process.arch)
+  }
+
+  public async checkPathExist(pathToCheck?: string): Promise<boolean> {
+    if (!pathToCheck) {
+      return false
+    }
+  
+    try {
+      await fsp.access(pathToCheck, fsp.constants.R_OK)
+    } catch {
+      return false
+    }
+    return true
+  }
+
   public abstract getCppAnalyzerFilePath(): Promise<string | undefined>
 
   public abstract getCppAnalyzerCoreFilePath(): Promise<string | undefined>
@@ -46,17 +63,27 @@ export abstract class AbstractPlatformBackend {
   public abstract getPlogConverterFilePath(): Promise<string | undefined>
 
   public abstract install(analyzerLanguage: string): Promise<void>
+
+  public abstract isWindows(): boolean
+  
+  public abstract isLinux(): boolean
+  
+  public abstract isMacOS(): boolean
+
+  public async runProgram(program: string, args: Array<string>): Promise<exec.ExecOutput> {
+    return await exec.getExecOutput(`"${program}"`, args)
+  }
 }
 
 export class WindowsBackend extends AbstractPlatformBackend {
   protected async getInstallPath(): Promise<string | undefined> {
     const getRegistryPath = (): string => {
-      return Utils.is64Bit()
+      return this.is64Bit()
         ? 'HKLM\\SOFTWARE\\Wow6432Node\\ProgramVerificationSystems\\PVS-Studio'
         : 'HKLM\\SOFTWARE\\ProgramVerificationSystems\\PVS-Studio'
     }
     const getRegistryUninstallPath = (): string => {
-      return Utils.is64Bit()
+      return this.is64Bit()
         ? 'HKLM\\SOFTWARE\\WOW6432Node\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\PVS-Studio_is1'
         : 'HKLM\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\PVS-Studio_is1'
     }
@@ -73,7 +100,7 @@ export class WindowsBackend extends AbstractPlatformBackend {
         getRegistryPath(),
         'InstallDir'
       )
-      if (await Utils.checkPathExist(pvsRegEntry)) {
+      if (await this.checkPathExist(pvsRegEntry)) {
         console.log('From main registry entry')
         return pvsRegEntry
       }
@@ -82,7 +109,7 @@ export class WindowsBackend extends AbstractPlatformBackend {
         getRegistryUninstallPath(),
         'InstallLocation'
       )
-      if (await Utils.checkPathExist(pvsRegUninstallEntry)) {
+      if (await this.checkPathExist(pvsRegUninstallEntry)) {
         console.log('From uninstall registry entry')
         return pvsRegUninstallEntry
       }
@@ -99,14 +126,14 @@ export class WindowsBackend extends AbstractPlatformBackend {
     const programFilesPath = process.env['ProgramFiles(x86)']
     if (programFilesPath) {
       const pathWithEnv = path.join(programFilesPath, 'PVS-Studio')
-      if (await Utils.checkPathExist(pathWithEnv)) {
+      if (await this.checkPathExist(pathWithEnv)) {
         console.log('From env')
         return pathWithEnv
       }
     }
 
     const fallbackPath = 'C:\\Program Files (x86)\\PVS-Studio'
-    if (await Utils.checkPathExist(fallbackPath)) {
+    if (await this.checkPathExist(fallbackPath)) {
       console.log('Fallback')
       return fallbackPath
     }
@@ -147,6 +174,18 @@ export class WindowsBackend extends AbstractPlatformBackend {
     }
     return undefined
   }
+
+  public isWindows(): boolean {
+    return true
+  }
+  
+  public isLinux(): boolean {
+    return false
+  }
+  
+  public isMacOS(): boolean {
+    return false
+  }
 }
 
 export class LinuxBackend extends AbstractPlatformBackend {
@@ -185,9 +224,9 @@ export class LinuxBackend extends AbstractPlatformBackend {
 
     // So, lets manually search in PATH
     let forcedPaths: Array<string> = []
-    if (Utils.isLinux()) {
+    if (this.isLinux()) {
       forcedPaths.push('/usr/bin', '/usr/sbin')
-    } else if (Utils.isMacOS()) {
+    } else if (this.isMacOS()) {
       forcedPaths.push('/usr/local/bin', '/usr/local/sbin')
     }
     const pathsFromEnv = process.env['PATH']?.split(':')
@@ -198,7 +237,7 @@ export class LinuxBackend extends AbstractPlatformBackend {
 
     for (const pathEntry of pathsToSearch) {
       const utilFilePath = path.join(pathEntry, tool)
-      if (await Utils.checkPathExist(utilFilePath)) {
+      if (await this.checkPathExist(utilFilePath)) {
         console.log('From manual search')
         return utilFilePath
       }
@@ -217,6 +256,18 @@ export class LinuxBackend extends AbstractPlatformBackend {
   public async getPlogConverterFilePath(): Promise<string | undefined> {
     return this.findTool('plog-converter')
   }
+
+  public isWindows(): boolean {
+    return false
+  }
+  
+  public isLinux(): boolean {
+    return true
+  }
+  
+  public isMacOS(): boolean {
+    return false
+  }
 }
 
 export class MacOSBackend extends LinuxBackend {
@@ -234,16 +285,29 @@ export class MacOSBackend extends LinuxBackend {
     }
     core.debug('PVS-Studio successfuly installed')
   }
+
+  public isWindows(): boolean {
+    return false
+  }
+  
+  public isLinux(): boolean {
+    return false
+  }
+  
+  public isMacOS(): boolean {
+    return true
+  }
 }
 
 export function getBackend(): AbstractPlatformBackend {
-  if (Utils.isWindows()) {
+  const platform = process.platform;
+  if (platform === 'win32') {
     core.debug('Detected Windows')
     return new WindowsBackend()
-  } else if (Utils.isMacOS()) {
+  } else if (platform === 'darwin') {
     core.debug('Detected macOS')
     return new MacOSBackend();
-  } else if (Utils.isLinux()) {
+  } else if (platform === 'linux') {
     core.debug('Detected Linux')
     return new LinuxBackend()
   }

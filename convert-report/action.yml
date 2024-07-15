@@ -16,7 +16,7 @@ inputs:
       'GA:1,2;64:1;OP:1,2,3;CS:1;MISRA:1,2'. See PlogConverter documentation for
       more information."
     required: false
-    default: ''
+    default: 'GA:1,2;OP:1,2'
   excluded-paths:
     description:
       'Excludes from the report all warnings issued in certain files (wildcards

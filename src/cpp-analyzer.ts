@@ -52,16 +52,8 @@ class CppTraceTask {
 }
 
 export class CppAnalyzer extends AbstractAnalyzer {
-  public async analyzerFilePath(): Promise<string | undefined> {
-    return this.backend.getCppAnalyzerFilePath()
-  }
-
-  public async coreFilePath(): Promise<string | undefined> {
-    return this.backend.getCppAnalyzerCoreFilePath()
-  }
-
   public async available(): Promise<boolean> {
-    return Boolean(await this.analyzerFilePath())
+    return Boolean(await this.backend.getCppAnalyzerFilePath())
   }
 
   public async install(): Promise<void> {
@@ -129,12 +121,12 @@ export class CppAnalyzer extends AbstractAnalyzer {
     const traceArgText = core.getInput('trace-args', Utils.RequiredInputWithTrim)
     try {
       const traceArgs = JSON.parse(traceArgText);
-      if(!Utils.isArrayOfStrings(traceArgs) || traceArgs.length === 0) {
+      if (!Utils.isArrayOfStrings(traceArgs) || traceArgs.length === 0) {
         throw new SyntaxError()
       }
       task.traceArgs = traceArgs;
-    } catch(e) {
-      if(e instanceof SyntaxError) {
+    } catch (e) {
+      if (e instanceof SyntaxError) {
         throw new PVSErrors.PVSError(`Unable to parse the 'trace-args' input (${traceArgText}). Non empty JSON array of string was expected.`)
       }
       // Rethrow if not a syntax error
@@ -220,14 +212,16 @@ export class CppAnalyzer extends AbstractAnalyzer {
     const args = this.createArgs(task)
     core.debug(`Args: ${JSON.stringify(args)}`)
 
-    const analyzerExecutable = await this.analyzerFilePath()
-    const res = await exec.getExecOutput(`"${analyzerExecutable}"`, args)
-    if (res.exitCode !== 0) {
+    const executable = await this.backend.getCppAnalyzerFilePath()
+    if (executable) {
+      const res = await this.backend.runProgram(executable, args);
+      if (res.exitCode === 0) {
+        return task.getOutput()
+      }
       throw new Error(
-        `Analyzer exited with code ${res.exitCode}. Details: ${res}`
+        `The PVS-Studio C++ analyzer exited with code ${res.exitCode}. Details: ${res}`
       )
     }
-
-    return task.getOutput()
+    throw new PVSErrors.AnalyzerComponentNotFound('C++ analyzer');
   }
 }

@@ -6,4 +6,8 @@ export abstract class AbstractAnalyzer {
   constructor(backend: backend.AbstractPlatformBackend) {
     this.backend = backend
   }
+
+  public abstract install(): Promise<void>;
+
+  public abstract available(): Promise<boolean>;
 }

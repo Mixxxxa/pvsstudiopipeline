@@ -12,10 +12,10 @@ export class Unimplemented extends PVSError {
   }
 }
 
-export class AnalyzerNotFound extends PVSError {
-  constructor(message: string) {
-    super(message)
-    this.name = 'AnalyzerNotFound'
+export class AnalyzerComponentNotFound extends PVSError {
+  constructor(component: string) {
+    super(`Unable to find PVS-Studio component: ${component}`)
+    this.name = 'AnalyzerComponentNotFound'
   }
 }
 
